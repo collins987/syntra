@@ -17,31 +17,36 @@ export default function DashboardPage() {
   const greeting = getGreeting()
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* Top: greeting + stat cards */}
-      <div className="shrink-0 border-b border-border-subtle bg-bg-surface px-6 py-5">
-        <div className="flex items-start gap-6">
-          <div className="w-52 shrink-0">
-            <h1 className="text-[28px] font-bold leading-tight text-text-primary">
-              {greeting}, Vincent.
+    <div className="flex h-full flex-col overflow-hidden bg-bg-base">
+      {/* ── Top: greeting + stat cards ── */}
+      <div className="shrink-0 border-b border-border-subtle bg-bg-surface px-8 py-6">
+        <div className="flex items-start gap-8">
+          {/* Greeting */}
+          <div className="w-[220px] shrink-0">
+            <h1 className="text-[38px] font-bold leading-[1.15] tracking-tight text-text-primary">
+              {greeting},<br />Vincent.
             </h1>
-            <p className="mt-1.5 text-sm text-text-muted">
+            <p className="mt-2 text-[13px] text-text-muted">
               Your autonomous systems are running.
             </p>
           </div>
-          <StatBar />
+
+          {/* Stat cards */}
+          <div className="flex-1 min-w-0">
+            <StatBar />
+          </div>
         </div>
       </div>
 
-      {/* Bottom: activity (left) | network + agents (right) */}
+      {/* ── Bottom: activity (left) | network + agents (right) ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left column: live activity */}
-        <div className="flex-1 overflow-hidden border-r border-border-subtle">
+        {/* Activity — takes remaining space */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden border-r border-border-subtle">
           <LiveActivity />
         </div>
 
-        {/* Right column: network stacked above agents */}
-        <div className="flex w-[480px] shrink-0 flex-col overflow-y-auto">
+        {/* Right panel — fixed width, scrollable vertically */}
+        <div className="flex w-[460px] shrink-0 flex-col overflow-y-auto">
           <AutomationNetwork />
           <AIAgents />
         </div>
