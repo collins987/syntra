@@ -67,9 +67,9 @@ const navigation: NavGroup[] = [
   {
     group: "System",
     items: [
-      { label: "Integrations", href: "/portal/integrations", icon: Plug },
-      { label: "Activity", href: "/portal/activity", icon: Activity },
-      { label: "Settings", href: "/portal/settings", icon: Settings },
+      { label: "Integrations",  href: "/portal/integrations", icon: Plug },
+      { label: "Activity Logs", href: "/portal/activity",     icon: Activity },
+      { label: "Settings",      href: "/portal/settings",     icon: Settings },
     ],
   },
 ]
@@ -117,7 +117,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {navigation.map((group) => (
           <div key={group.group} className="mb-4">
             {!collapsed && (
-              <p className="mb-0.5 px-4 text-[10px] font-medium tracking-widest text-text-disabled">
+              <p className="mb-0.5 px-3 text-[10px] font-medium tracking-widest text-text-disabled">
                 {group.group.toUpperCase()}
               </p>
             )}
@@ -133,16 +133,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     "relative flex h-7 items-center gap-2.5 text-[13px] transition-colors duration-100",
-                    collapsed ? "justify-center" : "px-4",
+                    collapsed ? "justify-center" : "px-3",
                     isActive
-                      ? "bg-bg-overlay/70 text-text-primary"
+                      ? "rounded-md bg-cyan-500/15 text-cyan-400"
                       : "text-text-muted hover:bg-bg-overlay/40 hover:text-text-secondary"
                   )}
                 >
-                  {isActive && (
-                    <div className="absolute inset-y-0 left-0 w-[2px] bg-cyan-500" />
-                  )}
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <Icon className={["h-3.5 w-3.5 shrink-0", isActive ? "text-cyan-400" : ""].join(" ")} />
                   {!collapsed && <span>{item.label}</span>}
                 </Link>
               )
