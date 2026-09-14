@@ -12,6 +12,7 @@ interface AppShellProps {
 
 export function AppShell({ children, user }: AppShellProps) {
   const [collapsed, setCollapsed] = React.useState(false)
+  const initials = user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "V"
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base">
@@ -19,31 +20,36 @@ export function AppShell({ children, user }: AppShellProps) {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-64 items-center gap-2 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm text-text-muted">
-              <Search className="h-3.5 w-3.5" />
-              <span>Search...</span>
-              <kbd className="ml-auto rounded border border-border-subtle px-1.5 text-[10px] font-mono text-text-disabled">
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-56 items-center gap-2 rounded border border-border-subtle bg-bg-base px-2.5 text-xs text-text-disabled transition-colors focus-within:border-border">
+              <Search className="h-3 w-3 shrink-0" />
+              <span className="flex-1 font-mono">Search...</span>
+              <kbd className="rounded border border-border-subtle px-1 font-mono text-[10px] text-text-disabled">
                 ⌘K
               </kbd>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="relative flex h-8 w-8 items-center justify-center rounded-md border border-border-subtle text-text-muted hover:text-text-primary transition-colors duration-[120ms]">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-500" />
+          <div className="flex items-center gap-2">
+            <button
+              className={cn(
+                "relative flex h-7 w-7 items-center justify-center rounded border border-border-subtle",
+                "text-text-muted transition-colors hover:border-border hover:text-text-secondary"
+              )}
+            >
+              <Bell className="h-3.5 w-3.5" />
+              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-cyan-500" />
             </button>
 
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-500/20">
-                <span className="text-xs font-semibold text-cyan-400">
-                  {user?.name?.[0]?.toUpperCase() ?? "V"}
+            <div className="flex items-center gap-2 pl-1">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-border-subtle bg-bg-elevated">
+                <span className="font-mono text-[10px] font-semibold text-text-secondary">
+                  {initials}
                 </span>
               </div>
-              <span className="text-sm text-text-secondary hidden md:block">
-                {user?.name ?? "Vincent"}
+              <span className="hidden font-mono text-xs text-text-muted md:block">
+                {user?.name ?? user?.email?.split("@")[0] ?? "Vincent"}
               </span>
             </div>
           </div>

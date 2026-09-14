@@ -1,27 +1,74 @@
 import type { Metadata } from "next"
-import { AutomationNetwork } from "./_components/automation-network"
-import { MetricCard } from "@syntra/ui"
-import { ActivityFeed } from "@syntra/ui"
-import type { ActivityItem } from "@syntra/ui"
+import Link from "next/link"
+import { Plus } from "lucide-react"
+import { RunList } from "./_components/run-list"
+import type { Run } from "./_components/run-list"
 
 export const metadata: Metadata = { title: "Dashboard" }
 
-const metrics = [
-  { label: "Active Automations", value: 24, trend: 12.4, trendLabel: "this month", accent: true },
-  { label: "System Uptime", value: "98.7", suffix: "%", trend: 0.2, trendLabel: "vs last month" },
-  { label: "AI Tasks Completed", value: "1,284", trend: 34.1, trendLabel: "this month" },
-  { label: "Leads Generated", value: 47, trend: 18.6, trendLabel: "this month" },
-  { label: "Revenue", value: "12,840", prefix: "$", trend: 22.3, trendLabel: "this month" },
-  { label: "Success Rate", value: "97.8", suffix: "%", trend: 1.1, trendLabel: "vs last month" },
-]
-
-const activity: ActivityItem[] = [
-  { id: "1", label: "Lead qualification", detail: "WF-002", status: "running", time: "now" },
-  { id: "2", label: "Content generation", detail: "WF-007 · Blog post", status: "completed", time: "4m ago" },
-  { id: "3", label: "Client onboarding", detail: "WF-003 · Acme Corp", status: "running", time: "12m ago" },
-  { id: "4", label: "Weekly report", detail: "WF-009", status: "scheduled", time: "Mon 08:00" },
-  { id: "5", label: "Email follow-up sequence", detail: "WF-006 · 3 leads", status: "completed", time: "1h ago" },
-  { id: "6", label: "Social media publishing", detail: "WF-008 · LinkedIn", status: "scheduled", time: "Today 14:00" },
+const runs: Run[] = [
+  {
+    id: "run-001",
+    name: "Lead qualification",
+    workflowId: "WF-002",
+    status: "running",
+    duration: "0:04",
+    time: "now",
+    steps: [
+      { name: "Initialize workflow", status: "completed", duration: "0.1s" },
+      { name: "Fetch lead from CRM", status: "completed", duration: "2.1s" },
+      { name: "Run AI analysis", status: "running" },
+      { name: "Score and route lead", status: "pending" },
+    ],
+  },
+  {
+    id: "run-002",
+    name: "Content generation",
+    workflowId: "WF-007",
+    detail: "Blog post",
+    status: "completed",
+    duration: "2:14",
+    time: "4m ago",
+    steps: [
+      { name: "Load content brief", status: "completed", duration: "0.8s" },
+      { name: "Generate with Claude", status: "completed", duration: "41.2s" },
+      { name: "SEO optimization", status: "completed", duration: "8.4s" },
+      { name: "Publish to CMS", status: "completed", duration: "2.1s" },
+    ],
+  },
+  {
+    id: "run-003",
+    name: "Client onboarding",
+    workflowId: "WF-003",
+    detail: "Acme Corp",
+    status: "completed",
+    duration: "8:32",
+    time: "12m ago",
+  },
+  {
+    id: "run-004",
+    name: "Weekly report",
+    workflowId: "WF-009",
+    status: "scheduled",
+    time: "Mon 08:00",
+  },
+  {
+    id: "run-005",
+    name: "Email follow-up",
+    workflowId: "WF-006",
+    detail: "3 leads",
+    status: "completed",
+    duration: "0:45",
+    time: "1h ago",
+  },
+  {
+    id: "run-006",
+    name: "Social media publishing",
+    workflowId: "WF-008",
+    detail: "LinkedIn",
+    status: "scheduled",
+    time: "Today 14:00",
+  },
 ]
 
 function getGreeting() {
@@ -35,68 +82,68 @@ export default function DashboardPage() {
   const greeting = getGreeting()
 
   return (
-    <div className="animate-fade-in p-6 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-text-primary">
-          {greeting}, Vincent
-        </h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Your autonomous systems are running.
-        </p>
-      </div>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        {metrics.map((m) => (
-          <MetricCard key={m.label} {...m} />
-        ))}
-      </div>
-
-      {/* Main content row */}
-      <div className="grid gap-5 lg:grid-cols-5">
-        {/* System Activity */}
-        <div className="lg:col-span-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-              System Activity
-            </h2>
-            <a href="/portal/automations" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
-              View all →
-            </a>
+    <div className="flex h-full flex-col">
+      {/* Page header */}
+      <div className="shrink-0 border-b border-border-subtle px-6 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-sm font-semibold text-text-primary">
+              {greeting}, Vincent
+            </h1>
+            <p className="mt-0.5 font-mono text-xs text-text-muted">
+              <span className="text-cyan-400">2</span> running
+              {" · "}
+              <span className="text-success-400">3</span> completed today
+              {" · "}
+              <span className="text-text-secondary">98.7%</span> success rate
+              {" · "}
+              <span className="text-text-secondary">$12,840</span> revenue
+            </p>
           </div>
-          <div className="rounded-lg border border-border-subtle bg-bg-surface">
-            <ActivityFeed items={activity} />
-          </div>
-        </div>
-
-        {/* Automation Network */}
-        <div className="lg:col-span-2 space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-            Automation Network
-          </h2>
-          <div className="rounded-lg border border-border-subtle bg-bg-surface p-4 h-[280px]">
-            <AutomationNetwork />
-          </div>
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "New automation", href: "/portal/automations/new", color: "cyan" },
-          { label: "Generate content", href: "/portal/ai", color: "violet" },
-          { label: "View leads", href: "/portal/leads", color: "default" },
-          { label: "Run report", href: "/portal/reports", color: "default" },
-        ].map((action) => (
-          <a
-            key={action.label}
-            href={action.href}
-            className="flex h-9 items-center justify-center rounded-md border border-border-subtle bg-bg-surface text-sm text-text-secondary hover:border-border hover:text-text-primary transition-all duration-[120ms]"
+          <Link
+            href="/portal/automations/new"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded border border-border-subtle bg-bg-elevated px-3 py-1.5 text-xs text-text-secondary transition-colors hover:border-border hover:text-text-primary"
           >
-            {action.label}
-          </a>
-        ))}
+            <Plus className="h-3 w-3" />
+            New Automation
+          </Link>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto space-y-5 p-6">
+        {/* Scope info */}
+        <div className="space-y-0.5 font-mono text-[11px] text-text-disabled">
+          <p>
+            {"• Automations in scope: Lead Pipeline · Content Studio · Client Onboarding · Email Sequences · Social"}
+          </p>
+          <p>
+            {"• Next scheduled: Mon 08:00 (WF-009 Weekly Report) · Remote caching disabled"}
+          </p>
+        </div>
+
+        {/* CI-style run list */}
+        <RunList runs={runs} />
+
+        {/* Compact stats */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { key: "tokens", label: "AI Tokens", value: "284,192", meta: "this month", delta: "+34.1%" },
+            { key: "runtime", label: "Avg Run Time", value: "3m 24s", meta: "per automation", delta: "↓ 12%" },
+            { key: "revenue", label: "Revenue", value: "$12,840", meta: "this month", delta: "+22.3%" },
+          ].map((s) => (
+            <div key={s.key} className="rounded-md border border-border-subtle bg-bg-surface px-4 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-disabled">{s.label}</p>
+              <p className="mt-1.5 font-mono text-base font-semibold tabular-nums text-text-primary">
+                {s.value}
+              </p>
+              <p className="mt-0.5 font-mono text-[11px] text-text-disabled">
+                {s.meta}{" "}
+                <span className="text-success-400">{s.delta}</span>
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -36,11 +36,11 @@ interface NavGroup {
 
 const navigation: NavGroup[] = [
   {
-    group: "OVERVIEW",
+    group: "Overview",
     items: [{ label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard }],
   },
   {
-    group: "WORKSPACE",
+    group: "Workspace",
     items: [
       { label: "Websites", href: "/portal/websites", icon: Globe },
       { label: "Automations", href: "/portal/automations", icon: Zap },
@@ -49,14 +49,14 @@ const navigation: NavGroup[] = [
     ],
   },
   {
-    group: "INTELLIGENCE",
+    group: "Intelligence",
     items: [
       { label: "AI Center", href: "/portal/ai", icon: Cpu },
       { label: "Analytics", href: "/portal/analytics", icon: BarChart3 },
     ],
   },
   {
-    group: "BUSINESS",
+    group: "Business",
     items: [
       { label: "Clients", href: "/portal/clients", icon: Building2 },
       { label: "Leads", href: "/portal/leads", icon: Users },
@@ -65,7 +65,7 @@ const navigation: NavGroup[] = [
     ],
   },
   {
-    group: "SYSTEM",
+    group: "System",
     items: [
       { label: "Integrations", href: "/portal/integrations", icon: Plug },
       { label: "Activity", href: "/portal/activity", icon: Activity },
@@ -85,76 +85,84 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-border-subtle bg-bg-surface transition-all duration-200",
-        collapsed ? "w-16" : "w-60"
+        "flex h-screen flex-col border-r border-border-subtle bg-bg-surface transition-all duration-150",
+        collapsed ? "w-[52px]" : "w-56"
       )}
     >
       {/* Logo */}
-      <div className={cn("flex h-14 items-center border-b border-border-subtle px-4", collapsed && "justify-center")}>
+      <div
+        className={cn(
+          "flex h-12 shrink-0 items-center border-b border-border-subtle",
+          collapsed ? "justify-center" : "px-4"
+        )}
+      >
         {collapsed ? (
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-            <span className="text-xs font-bold text-bg-base">S</span>
+          <div className="flex h-6 w-6 items-center justify-center rounded bg-cyan-500">
+            <span className="text-[10px] font-bold text-bg-base">S</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-              <span className="text-xs font-bold text-bg-base">S</span>
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-cyan-500">
+              <span className="text-[10px] font-bold text-bg-base">S</span>
             </div>
-            <span className="text-sm font-semibold tracking-wide text-text-primary">SYNTRA</span>
+            <span className="text-[13px] font-semibold tracking-wider text-text-primary">
+              SYNTRA
+            </span>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-5">
+      <nav className="flex-1 overflow-y-auto py-3">
         {navigation.map((group) => (
-          <div key={group.group}>
+          <div key={group.group} className="mb-4">
             {!collapsed && (
-              <p className="mb-1.5 px-2 text-[10px] font-semibold tracking-widest text-text-disabled">
-                {group.group}
+              <p className="mb-0.5 px-4 text-[10px] font-medium tracking-widest text-text-disabled">
+                {group.group.toUpperCase()}
               </p>
             )}
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
-                const Icon = item.icon
+            {group.items.map((item) => {
+              const isActive =
+                pathname === item.href || pathname?.startsWith(item.href + "/")
+              const Icon = item.icon
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    title={collapsed ? item.label : undefined}
-                    className={cn(
-                      "relative flex h-8 items-center gap-2.5 rounded-md px-2 text-sm transition-colors duration-[120ms]",
-                      isActive
-                        ? "bg-bg-overlay text-text-primary"
-                        : "text-text-muted hover:bg-bg-overlay hover:text-text-secondary",
-                      collapsed && "justify-center px-0"
-                    )}
-                  >
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-cyan-500" />
-                    )}
-                    <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-cyan-400")} />
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
-                )
-              })}
-            </div>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={collapsed ? item.label : undefined}
+                  className={cn(
+                    "relative flex h-7 items-center gap-2.5 text-[13px] transition-colors duration-100",
+                    collapsed ? "justify-center" : "px-4",
+                    isActive
+                      ? "bg-bg-overlay/70 text-text-primary"
+                      : "text-text-muted hover:bg-bg-overlay/40 hover:text-text-secondary"
+                  )}
+                >
+                  {isActive && (
+                    <div className="absolute inset-y-0 left-0 w-[2px] bg-cyan-500" />
+                  )}
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              )
+            })}
           </div>
         ))}
       </nav>
 
       {/* Collapse toggle */}
-      <div className="border-t border-border-subtle p-2">
+      <div className="shrink-0 border-t border-border-subtle">
         <button
           onClick={onToggle}
           className={cn(
-            "flex h-8 w-full items-center gap-2 rounded-md px-2 text-xs text-text-muted hover:bg-bg-overlay hover:text-text-secondary transition-colors duration-[120ms]",
-            collapsed && "justify-center"
+            "flex h-9 w-full items-center gap-2 text-[12px] text-text-disabled transition-colors duration-100 hover:bg-bg-overlay/40 hover:text-text-muted",
+            collapsed ? "justify-center" : "px-4"
           )}
         >
-          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : (
+          {collapsed ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
             <>
               <ChevronLeft className="h-3.5 w-3.5" />
               <span>Collapse</span>
