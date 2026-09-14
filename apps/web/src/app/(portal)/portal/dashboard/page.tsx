@@ -45,8 +45,8 @@ export default function DashboardPage() {
           <LiveActivity />
         </div>
 
-        {/* Right panel — fixed width, scrollable vertically */}
-        <div className="flex w-[460px] shrink-0 flex-col overflow-y-auto">
+        {/* Right panel — proportional, scrollable vertically */}
+        <div className="flex w-[48%] min-w-[450px] shrink-0 flex-col overflow-y-auto">
           <AutomationNetwork />
           <AIAgents />
         </div>

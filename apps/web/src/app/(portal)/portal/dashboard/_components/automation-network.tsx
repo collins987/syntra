@@ -1,7 +1,6 @@
 "use client"
 
 import { Globe, Cpu, Users, Building2, Mail } from "lucide-react"
-import { AreaChart, Area, ResponsiveContainer } from "recharts"
 import type { ElementType } from "react"
 
 type NodeStatus = "running" | "idle" | "pending"
@@ -9,18 +8,17 @@ type NodeStatus = "running" | "idle" | "pending"
 interface NetNode {
   id: string
   label: string
-  sub?: string
+  techData: string   // monospace technical data displayed under label
   status: NodeStatus
   Icon: ElementType
 }
 
-// ── Right panel inner = 460px − 2×20px padding = 420px
-// Row 2: 3 nodes × 108px + 2 connectors × 38px + 4 gaps × 4px = 324+76+16 = 416px ✓
-const NODE_W = "w-[108px]"
-const CONN_W = "w-[38px]"
+// ── Sizing: right panel 48% of ~1056px = ~507px, minus 40px padding = 467px
+// Row-2 budget: 3×118 + 2×46 + 4px gaps = 354+92+12 = 458px ✓
+const NODE_W = "w-[118px]"
 
 const BORDER: Record<NodeStatus, string> = {
-  running: "border-cyan-500/35 shadow-[0_0_10px_rgba(0,229,255,0.07)]",
+  running: "border-cyan-500/35 shadow-[0_0_12px_rgba(0,229,255,0.09)]",
   idle:    "border-border-subtle",
   pending: "border-warning-400/35",
 }
@@ -30,68 +28,107 @@ const BG: Record<NodeStatus, string> = {
   pending: "bg-warning-400/[0.04]",
 }
 const DOT: Record<NodeStatus, string> = {
-  running: "bg-cyan-400 animate-pulse",
+  running: "bg-cyan-400 animate-pulse shadow-[0_0_5px_rgba(0,229,255,0.7)]",
   idle:    "bg-border-strong",
   pending: "bg-warning-400",
 }
-const DOT_TEXT: Record<NodeStatus, string> = {
+const STATUS_TEXT: Record<NodeStatus, string> = {
   running: "text-cyan-400",
   idle:    "text-text-disabled",
   pending: "text-warning-400",
 }
 const STATUS_LABEL: Record<NodeStatus, string> = {
   running: "Running",
-  idle:    "Ready",
+  idle:    "Status",
   pending: "Pending",
 }
 
-const connData = [{ v: 3 }, { v: 6 }, { v: 4 }, { v: 8 }, { v: 5 }, { v: 9 }, { v: 7 }]
-
-let connId = 0
-function Connector() {
-  const id = `cg-${connId++}`
+/* Connector — dark line + pulsing dot moving along it + mini sparkline + arrow */
+function Connector({ active = true }: { active?: boolean }) {
   return (
-    <div className={`${CONN_W} shrink-0 flex flex-col items-center gap-0.5`}>
-      <div className="flex items-center gap-0.5 rounded border border-border-subtle bg-bg-base px-1 py-0.5">
-        <span className="font-mono text-[9px] leading-none text-text-disabled">Conn.</span>
-        <span className="text-[9px] text-cyan-500/50">›</span>
-      </div>
-      <ResponsiveContainer width="100%" height={14}>
-        <AreaChart data={connData} margin={{ top: 1, right: 0, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00E5FF" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#00E5FF" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <Area type="monotone" dataKey="v" stroke="#00E5FF" strokeWidth={1} fill={`url(#${id})`} dot={false} isAnimationActive={false} />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className="flex w-[46px] shrink-0 flex-col items-center gap-0.5">
+      <span className="text-[9px] font-medium tracking-wide text-text-disabled">
+        Connectors
+      </span>
+      <svg width="46" height="22" viewBox="0 0 46 22" xmlns="http://www.w3.org/2000/svg">
+        {/* Mini sparkline above the main line */}
+        <polyline
+          points="2,10 7,7 12,9 17,5 22,7 27,4 32,6 37,3 42,5"
+          fill="none"
+          stroke={active ? "rgba(0,229,255,0.45)" : "#263342"}
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {/* Main connector line */}
+        <line
+          x1="2" y1="16" x2="39" y2="16"
+          stroke={active ? "rgba(0,229,255,0.25)" : "#1E2935"}
+          strokeWidth="1.5"
+          strokeDasharray={active ? "4 2" : "none"}
+        />
+        {/* Arrow head */}
+        <polygon
+          points="39,13 45,16 39,19"
+          fill={active ? "rgba(0,229,255,0.5)" : "#263342"}
+        />
+        {/* Pulsing data point moving along the line */}
+        {active && (
+          <circle r="2.5" fill="#00E5FF">
+            <animateMotion
+              path="M2,16 L39,16"
+              dur="1.6s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              values="0.2;1;0.2"
+              dur="1.6s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        )}
+      </svg>
     </div>
   )
 }
 
 function NetCard({ node }: { node: NetNode }) {
   return (
-    <div className={`${NODE_W} shrink-0 rounded-xl border px-2.5 py-2.5 ${BORDER[node.status]} ${BG[node.status]}`}>
+    <div
+      className={[
+        NODE_W,
+        "shrink-0 rounded-xl border px-2.5 py-2.5",
+        BORDER[node.status],
+        BG[node.status],
+      ].join(" ")}
+    >
+      {/* Icon + label */}
       <div className="flex items-start gap-1.5">
         <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-surface">
           <node.Icon className="h-3 w-3 text-text-muted" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-[11px] font-semibold leading-tight text-text-primary" title={node.label}>
+          <p
+            className="line-clamp-2 text-[11px] font-semibold leading-tight text-text-primary"
+            title={node.label}
+          >
             {node.label}
           </p>
-          {node.sub && (
-            <p className="mt-0.5 truncate text-[10px] text-text-disabled" title={node.sub}>
-              {node.sub}
-            </p>
-          )}
+          {/* Technical data in monospace — per spec */}
+          <p
+            className="mt-0.5 truncate font-mono text-[9px] text-text-disabled"
+            title={node.techData}
+          >
+            {node.techData}
+          </p>
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-1 border-t border-border-subtle/40 pt-1.5">
+
+      {/* Status row */}
+      <div className="mt-2 flex items-center gap-1.5 border-t border-border-subtle/40 pt-1.5">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT[node.status]}`} />
-        <span className={`text-[10px] font-medium ${DOT_TEXT[node.status]}`}>
+        <span className={`text-[10px] font-semibold ${STATUS_TEXT[node.status]}`}>
           {STATUS_LABEL[node.status]}
         </span>
       </div>
@@ -99,20 +136,55 @@ function NetCard({ node }: { node: NetNode }) {
   )
 }
 
+// ── Node data ─────────────────────────────────────────────────────────────────
+
 const ROW1: NetNode[] = [
-  { id: "trigger", label: "Website Lead Trigger", status: "running", Icon: Globe },
-  { id: "ai",      label: "AI Analysis",          sub: "Agent Ava.", status: "running", Icon: Cpu },
+  {
+    id: "trigger",
+    label: "Website Lead Trigger",
+    techData: "wf:001 · 3.2k/hr",
+    status: "running",
+    Icon: Globe,
+  },
+  {
+    id: "ai",
+    label: "AI Analysis",
+    techData: "agt:ava · claude-3.5",
+    status: "running",
+    Icon: Cpu,
+  },
 ]
 
 const ROW2: NetNode[] = [
-  { id: "qual",  label: "Lead Qualification", status: "running", Icon: Users    },
-  { id: "crm",   label: "CRM",                sub: "HubSpot Sync", status: "idle", Icon: Building2 },
-  { id: "email", label: "Email Sequence",      status: "running", Icon: Mail     },
+  {
+    id: "qual",
+    label: "Lead Qualification",
+    techData: "wf:003 · scr:A+",
+    status: "running",
+    Icon: Users,
+  },
+  {
+    id: "crm",
+    label: "CRM",
+    techData: "hubspot · 94ms sync",
+    status: "idle",
+    Icon: Building2,
+  },
+  {
+    id: "email",
+    label: "Email Sequence",
+    techData: "seq:003 · 3 leads",
+    status: "running",
+    Icon: Mail,
+  },
 ]
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function AutomationNetwork() {
   return (
     <div className="flex flex-col border-b border-border-subtle">
+      {/* Header */}
       <div className="flex shrink-0 items-center justify-between px-5 py-3.5">
         <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
           Active Automation Network
@@ -123,25 +195,35 @@ export function AutomationNetwork() {
       </div>
 
       <div className="space-y-2 px-5 pb-5">
-        {/* Row 1 */}
+        {/* Row 1 — Lead Trigger → AI Analysis */}
         <div className="flex items-center gap-1">
           {ROW1.map((node, i) => (
             <div key={node.id} className="flex items-center gap-1">
               <NetCard node={node} />
-              {i < ROW1.length - 1 && <Connector />}
+              {i < ROW1.length - 1 && <Connector active />}
             </div>
           ))}
         </div>
 
-        {/* Vertical connector from right of col-1 down to row-2 col-2 */}
-        <div className="ml-[54px] h-4 w-px bg-gradient-to-b from-cyan-500/30 to-transparent" />
+        {/* Vertical connector: AI Analysis (right side of row 1) drops to CRM (row 2) */}
+        <div className="relative ml-[163px] flex h-5 items-center">
+          <svg width="12" height="20" viewBox="0 0 12 20" xmlns="http://www.w3.org/2000/svg">
+            <line x1="6" y1="0" x2="6" y2="16"
+              stroke="rgba(0,229,255,0.25)" strokeWidth="1.5" strokeDasharray="3 2" />
+            <polygon points="2,14 6,20 10,14" fill="rgba(0,229,255,0.45)" />
+            <circle r="2" fill="#00E5FF" cx="6" cy="0">
+              <animate attributeName="cy" from="0" to="14" dur="1.4s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.2;1;0.2" dur="1.4s" repeatCount="indefinite" />
+            </circle>
+          </svg>
+        </div>
 
-        {/* Row 2 */}
+        {/* Row 2 — Lead Qual → CRM → Email */}
         <div className="flex items-center gap-1">
           {ROW2.map((node, i) => (
             <div key={node.id} className="flex items-center gap-1">
               <NetCard node={node} />
-              {i < ROW2.length - 1 && <Connector />}
+              {i < ROW2.length - 1 && <Connector active={node.status === "running"} />}
             </div>
           ))}
         </div>
