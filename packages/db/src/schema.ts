@@ -185,6 +185,19 @@ export interface SupportTicket {
   updated_at: string
 }
 
+export interface Invoice {
+  id: string
+  org_id: string
+  stripe_invoice_id: string | null
+  amount_cents: number
+  currency: string
+  status: string
+  pdf_url: string | null
+  period_start: string | null
+  period_end: string | null
+  created_at: string
+}
+
 export interface AuditLog {
   id: string
   org_id: string
@@ -210,23 +223,37 @@ export interface Notification {
   created_at: string
 }
 
+// ── Supabase compatibility helpers ───────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type T<Row, Ins = Partial<Row>> = {
+  Row: Row
+  Insert: Ins
+  Update: Partial<Row>
+  Relationships: never[]
+}
+
 // Database shape for Supabase client typing
 export interface Database {
   public: {
     Tables: {
-      organizations: { Row: Organization; Insert: Omit<Organization, "id" | "created_at" | "updated_at">; Update: Partial<Organization> }
-      organization_members: { Row: OrganizationMember; Insert: Omit<OrganizationMember, "id" | "created_at">; Update: Partial<OrganizationMember> }
-      subscriptions: { Row: Subscription; Insert: Omit<Subscription, "id" | "created_at" | "updated_at">; Update: Partial<Subscription> }
-      projects: { Row: Project; Insert: Omit<Project, "id" | "created_at" | "updated_at">; Update: Partial<Project> }
-      websites: { Row: Website; Insert: Omit<Website, "id" | "created_at" | "updated_at">; Update: Partial<Website> }
-      leads: { Row: Lead; Insert: Omit<Lead, "id" | "created_at" | "updated_at">; Update: Partial<Lead> }
-      automations: { Row: Automation; Insert: Omit<Automation, "id" | "created_at" | "updated_at">; Update: Partial<Automation> }
-      workflow_executions: { Row: WorkflowExecution; Insert: Omit<WorkflowExecution, "id">; Update: Partial<WorkflowExecution> }
-      ai_requests: { Row: AIRequest; Insert: Omit<AIRequest, "id" | "created_at">; Update: Partial<AIRequest> }
-      ai_usage_budgets: { Row: AIUsageBudget; Insert: Omit<AIUsageBudget, "id">; Update: Partial<AIUsageBudget> }
-      support_tickets: { Row: SupportTicket; Insert: Omit<SupportTicket, "id" | "created_at" | "updated_at">; Update: Partial<SupportTicket> }
-      audit_logs: { Row: AuditLog; Insert: Omit<AuditLog, "id" | "created_at">; Update: Partial<AuditLog> }
-      notifications: { Row: Notification; Insert: Omit<Notification, "id" | "created_at">; Update: Partial<Notification> }
+      organizations: T<Organization, Omit<Organization, "id" | "created_at" | "updated_at">>
+      organization_members: T<OrganizationMember, Omit<OrganizationMember, "id" | "created_at">>
+      subscriptions: T<Subscription, Omit<Subscription, "id" | "created_at" | "updated_at">>
+      invoices: T<Invoice, Omit<Invoice, "id" | "created_at">>
+      projects: T<Project, Omit<Project, "id" | "created_at" | "updated_at">>
+      websites: T<Website, Omit<Website, "id" | "created_at" | "updated_at">>
+      leads: T<Lead, Omit<Lead, "id" | "created_at" | "updated_at">>
+      automations: T<Automation, Omit<Automation, "id" | "created_at" | "updated_at">>
+      workflow_executions: T<WorkflowExecution, Omit<WorkflowExecution, "id">>
+      ai_requests: T<AIRequest, Omit<AIRequest, "id" | "created_at">>
+      ai_usage_budgets: T<AIUsageBudget, Omit<AIUsageBudget, "id">>
+      support_tickets: T<SupportTicket, Omit<SupportTicket, "id" | "created_at" | "updated_at">>
+      audit_logs: T<AuditLog, Omit<AuditLog, "id" | "created_at">>
+      notifications: T<Notification, Omit<Notification, "id" | "created_at">>
     }
+    Views: { [_ in never]: never }
+    Functions: { [_ in never]: never }
+    Enums: { [_ in never]: never }
+    CompositeTypes: { [_ in never]: never }
   }
 }
