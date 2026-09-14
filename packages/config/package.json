@@ -2,6 +2,9 @@
   "name": "@syntra/config",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "lint": "echo \"No lint for config package\""
+  },
   "exports": {
     "./tailwind": "./tailwind.config.js",
     "./typescript": "./tsconfig.base.json",

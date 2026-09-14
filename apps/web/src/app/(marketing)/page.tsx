@@ -152,7 +152,7 @@ export default function HomePage() {
           Ready to build your autonomous system?
         </h2>
         <p className="mt-4 text-text-muted">
-          Get a free automation audit — we'll show you exactly what we'd automate in your business.
+          Get a free automation audit — we&apos;ll show you exactly what we&apos;d automate in your business.
         </p>
         <Link
           href="/audit"
