@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
@@ -35,6 +35,14 @@ const MPESA_INIT: MpesaState = {
 }
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg-base" />}>
+      <PricingContent />
+    </Suspense>
+  )
+}
+
+function PricingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlError = searchParams.get("error")
