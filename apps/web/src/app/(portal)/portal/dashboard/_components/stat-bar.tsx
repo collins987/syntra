@@ -6,15 +6,29 @@ import {
   BarChart, Bar, Cell,
   ResponsiveContainer,
 } from "recharts"
+import type { DashboardStats, DashboardSparklines, SparkPoint } from "@/lib/dashboard"
 
-interface Pt { v: number }
-const pts = (raw: number[]): Pt[] => raw.map((v) => ({ v }))
+function hasSignal(data: SparkPoint[]) {
+  return data.some((d) => d.v > 0)
+}
 
-const LEADS_DATA = pts([2, 5, 3, 7, 4, 8, 6, 10, 7, 12])
-const REVENUE_DATA = pts([3, 5, 4, 7, 5, 9, 6, 8, 10, 12])
-const AI_DATA = pts([3, 6, 4, 8, 5, 9, 7, 11, 8, 13])
+function compact(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return n.toLocaleString()
+}
 
-function AreaSpark({ data, id }: { data: Pt[]; id: string }) {
+function money(cents: number, currency: string) {
+  const amount = cents / 100
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    maximumFractionDigits: amount >= 1000 ? 0 : 2,
+  }).format(amount)
+  return formatted
+}
+
+function AreaSpark({ data, id }: { data: SparkPoint[]; id: string }) {
   return (
     <ResponsiveContainer width="100%" height={36}>
       <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
@@ -31,9 +45,8 @@ function AreaSpark({ data, id }: { data: Pt[]; id: string }) {
   )
 }
 
-function LineSpark({ data }: { data: Pt[] }) {
+function LineSpark({ data }: { data: SparkPoint[] }) {
   return (
-    /* drop-shadow gives the "glowing cyan line" described in the spec */
     <div style={{ filter: "drop-shadow(0 0 4px rgba(0,229,255,0.55))" }}>
       <ResponsiveContainer width="100%" height={36}>
         <LineChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
@@ -45,20 +58,16 @@ function LineSpark({ data }: { data: Pt[] }) {
   )
 }
 
-function BarSpark({ data }: { data: Pt[] }) {
+function BarSpark({ data }: { data: SparkPoint[] }) {
   const maxV = Math.max(...data.map((d) => d.v))
   return (
-    /* drop-shadow gives the "glowing cyan bar chart" described in the spec */
     <div style={{ filter: "drop-shadow(0 0 3px rgba(0,229,255,0.45))" }}>
       <ResponsiveContainer width="100%" height={36}>
         <BarChart data={data} barSize={5} barGap={2}
           margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
           <Bar dataKey="v" radius={[2, 2, 0, 0]} isAnimationActive={false}>
             {data.map((d, i) => (
-              <Cell
-                key={i}
-                fill={d.v === maxV ? "#00E5FF" : "rgba(0,229,255,0.35)"}
-              />
+              <Cell key={i} fill={d.v === maxV && maxV > 0 ? "#00E5FF" : "rgba(0,229,255,0.35)"} />
             ))}
           </Bar>
         </BarChart>
@@ -67,79 +76,108 @@ function BarSpark({ data }: { data: Pt[] }) {
   )
 }
 
-// ── Card definitions ──────────────────────────────────────────────────────────
+function NoSignal({ label }: { label: string }) {
+  return <span className="text-[11px] text-text-disabled">{label}</span>
+}
 
-const CARDS = [
-  {
-    key: "automations",
-    label: "Active Automations",
-    value: "2,841",
-    accent: true,
-    footer: (
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
-        Running
-      </span>
-    ),
-    chart: null,
-  },
-  {
-    key: "uptime",
-    label: "System Uptime",
-    value: "99.98%",
-    accent: false,
-    footer: (
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-success-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-success-400" />
-        Operational
-      </span>
-    ),
-    chart: null,
-  },
-  {
-    key: "ai",
-    label: "AI Tasks (Today)",
-    value: "14.5k",
-    accent: false,
-    footer: null,
-    chart: <AreaSpark data={AI_DATA} id="sp-ai" />,
-  },
-  {
-    key: "leads",
-    label: "Leads Generated",
-    value: "312",
-    accent: false,
-    footer: null,
-    // Spec: "glowing cyan line graph"
-    chart: <LineSpark data={LEADS_DATA} />,
-  },
-  {
-    key: "revenue",
-    label: "Revenue",
-    value: "$4,200",
-    accent: false,
-    footer: null,
-    // Spec: "glowing cyan bar chart"
-    chart: <BarSpark data={REVENUE_DATA} />,
-  },
-  {
-    key: "success",
-    label: "Automation Success Rate",
-    value: "99.7%",
-    accent: false,
-    footer: (
-      <span className="flex items-center gap-1 text-[11px] font-semibold text-success-400">
-        <span className="text-[10px]">✓</span> Status
-      </span>
-    ),
-    chart: null,
-  },
-]
+export function StatBar({
+  stats,
+  sparklines,
+}: {
+  stats: DashboardStats
+  sparklines: DashboardSparklines
+}) {
+  const degraded = stats.totalAutomations > 0 && stats.activeAutomations === 0
 
-export function StatBar() {
+  const cards = [
+    {
+      key: "automations",
+      label: "Active Automations",
+      value: stats.activeAutomations.toLocaleString(),
+      accent: true,
+      footer:
+        stats.activeAutomations > 0 ? (
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
+            Running
+          </span>
+        ) : (
+          <NoSignal label={stats.totalAutomations > 0 ? "All paused" : "None yet"} />
+        ),
+      chart: null,
+    },
+    {
+      key: "status",
+      label: "System Status",
+      value: degraded ? "Paused" : "Online",
+      accent: false,
+      footer: (
+        <span
+          className={[
+            "flex items-center gap-1.5 text-[11px] font-semibold",
+            degraded ? "text-warning-400" : "text-success-400",
+          ].join(" ")}
+        >
+          <span
+            className={[
+              "h-1.5 w-1.5 rounded-full",
+              degraded ? "bg-warning-400" : "bg-success-400",
+            ].join(" ")}
+          />
+          {degraded ? "Attention" : "Operational"}
+        </span>
+      ),
+      chart: null,
+    },
+    {
+      key: "ai",
+      label: "AI Tasks (Today)",
+      value: compact(stats.aiTasksToday),
+      accent: false,
+      footer: <NoSignal label="No AI activity yet" />,
+      chart: hasSignal(sparklines.aiTasks) ? <AreaSpark data={sparklines.aiTasks} id="sp-ai" /> : null,
+    },
+    {
+      key: "leads",
+      label: "Leads Generated",
+      value: compact(stats.totalLeads),
+      accent: false,
+      footer: <NoSignal label="No leads yet" />,
+      chart: hasSignal(sparklines.leads) ? <LineSpark data={sparklines.leads} /> : null,
+    },
+    {
+      key: "revenue",
+      label: "Revenue",
+      value: money(stats.revenueCents, stats.currency),
+      accent: false,
+      footer: <NoSignal label="No invoices yet" />,
+      chart: hasSignal(sparklines.revenue) ? <BarSpark data={sparklines.revenue} /> : null,
+    },
+    {
+      key: "success",
+      label: "Automation Success Rate",
+      value: stats.successRate === null ? "—" : `${stats.successRate.toFixed(1)}%`,
+      accent: false,
+      footer:
+        stats.successRate === null ? (
+          <NoSignal label="No runs yet" />
+        ) : (
+          <span
+            className={[
+              "flex items-center gap-1 text-[11px] font-semibold",
+              stats.successRate >= 95 ? "text-success-400" : "text-warning-400",
+            ].join(" ")}
+          >
+            <span className="text-[10px]">{stats.successRate >= 95 ? "✓" : "!"}</span> Status
+          </span>
+        ),
+      chart: null,
+    },
+  ]
+
   return (
     <div className="flex gap-3">
-      {CARDS.map((c) => (
+      {cards.map((c) => (
         <div
           key={c.key}
           className={[

@@ -226,6 +226,48 @@ export interface Notification {
   created_at: string
 }
 
+export type IntegrationProvider =
+  | "slack"
+  | "hubspot"
+  | "google_sheets"
+  | "zapier"
+  | "webhook"
+
+export interface Integration {
+  id: string
+  org_id: string
+  provider: IntegrationProvider
+  config: Record<string, unknown>
+  enabled: boolean
+  last_sync_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TeamInvite {
+  id: string
+  org_id: string
+  email: string
+  role: "CLIENT_ADMIN" | "CLIENT_USER"
+  token: string
+  invited_by: string | null
+  expires_at: string
+  accepted_at: string | null
+  created_at: string
+}
+
+export interface EmailLog {
+  id: string
+  org_id: string | null
+  to_email: string
+  subject: string
+  template: string
+  resend_id: string | null
+  status: "sent" | "failed"
+  error: string | null
+  created_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -253,6 +295,9 @@ export interface Database {
       support_tickets: T<SupportTicket, Omit<SupportTicket, "id" | "created_at" | "updated_at">>
       audit_logs: T<AuditLog, Omit<AuditLog, "id" | "created_at">>
       notifications: T<Notification, Omit<Notification, "id" | "created_at">>
+      integrations: T<Integration, Omit<Integration, "id" | "created_at" | "updated_at">>
+      team_invites: T<TeamInvite, Omit<TeamInvite, "id" | "created_at">>
+      email_logs: T<EmailLog, Omit<EmailLog, "id" | "created_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

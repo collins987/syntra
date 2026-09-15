@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { sendEmail, APP_URL } from "@/lib/resend"
+import { WelcomeEmail } from "@/emails/welcome"
+
+const PLAN_LABELS: Record<string, string> = {
+  sites: "Syntra Sites",
+  flow: "Syntra Flow",
+  ai: "Syntra AI",
+  os: "Syntra OS",
+}
 
 interface OnboardingPayload {
   orgName: string
@@ -71,6 +80,20 @@ export async function POST(req: NextRequest) {
       brand_data: {},
     })) as { error: Error | null }
     if (projectError) throw projectError
+
+    if (user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: `${orgName} is live on SYNTRA`,
+        template: "welcome",
+        orgId: org.id,
+        react: WelcomeEmail({
+          orgName,
+          planName: PLAN_LABELS[serviceType] ?? serviceType,
+          dashboardUrl: `${APP_URL}/portal/dashboard`,
+        }),
+      })
+    }
 
     return NextResponse.json({ orgId: org.id })
   } catch (err) {
