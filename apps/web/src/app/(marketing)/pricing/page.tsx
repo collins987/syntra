@@ -3,15 +3,34 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { PLANS } from "@/lib/pricing"
-import { Check } from "lucide-react"
+import { Check, CreditCard, Smartphone } from "lucide-react"
+
+const KES_PRICES: Record<string, number> = {
+  sites: parseInt(process.env.NEXT_PUBLIC_FLW_PRICE_SITES_KES ?? "38700"),
+  flow: parseInt(process.env.NEXT_PUBLIC_FLW_PRICE_FLOW_KES ?? "64700"),
+  os: parseInt(process.env.NEXT_PUBLIC_FLW_PRICE_OS_KES ?? "129700"),
+}
+
+type PayMethod = "card" | "mpesa"
 
 export default function PricingPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const urlError = searchParams.get("error")
 
-  async function handleCheckout(priceId: string, planId: string) {
+  const [payMethod, setPayMethod] = useState<PayMethod>("card")
+  const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    urlError === "payment_failed" ? "Payment was not completed. Please try again." :
+    urlError === "payment_cancelled" ? "Payment was cancelled." :
+    urlError === "verification_failed" ? "Payment verification failed. Contact support." :
+    urlError === "amount_mismatch" ? "Payment amount mismatch. Contact support." :
+    null
+  )
+
+  async function handleStripeCheckout(priceId: string, planId: string) {
     setLoading(planId)
     setError(null)
     try {
@@ -22,10 +41,7 @@ export default function PricingPage() {
       })
       const data = (await res.json()) as { url?: string; error?: string }
       if (!res.ok || !data.url) {
-        if (res.status === 401) {
-          router.push(`/login?next=/pricing`)
-          return
-        }
+        if (res.status === 401) { router.push(`/login?next=/pricing`); return }
         throw new Error(data.error ?? "Checkout failed")
       }
       window.location.href = data.url
@@ -34,6 +50,33 @@ export default function PricingPage() {
     } finally {
       setLoading(null)
     }
+  }
+
+  async function handleMpesaCheckout(planId: string) {
+    setLoading(planId)
+    setError(null)
+    try {
+      const res = await fetch("/api/flutterwave/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      })
+      const data = (await res.json()) as { url?: string; error?: string }
+      if (!res.ok || !data.url) {
+        if (res.status === 401) { router.push(`/login?next=/pricing`); return }
+        throw new Error(data.error ?? "Checkout failed")
+      }
+      window.location.href = data.url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  function handleCheckout(priceId: string, planId: string) {
+    if (payMethod === "mpesa") return handleMpesaCheckout(planId)
+    return handleStripeCheckout(priceId, planId)
   }
 
   return (
@@ -64,7 +107,7 @@ export default function PricingPage() {
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-20">
         {/* Header */}
-        <div className="mb-16 text-center">
+        <div className="mb-12 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
             <span className="text-xs font-medium text-cyan-400">Simple, transparent pricing</span>
@@ -78,6 +121,43 @@ export default function PricingPage() {
             Every plan includes a dedicated client portal, real-time monitoring, and SYNTRA&apos;s autonomous AI layer.
           </p>
         </div>
+
+        {/* Payment method toggle */}
+        <div className="mb-10 flex justify-center">
+          <div className="flex rounded-xl border border-border-subtle bg-bg-elevated p-1">
+            <button
+              onClick={() => setPayMethod("card")}
+              className={[
+                "flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-all",
+                payMethod === "card"
+                  ? "bg-bg-surface text-text-primary shadow-sm"
+                  : "text-text-muted hover:text-text-primary",
+              ].join(" ")}
+            >
+              <CreditCard className="h-4 w-4" />
+              Pay with Card
+            </button>
+            <button
+              onClick={() => setPayMethod("mpesa")}
+              className={[
+                "flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-all",
+                payMethod === "mpesa"
+                  ? "bg-bg-surface text-text-primary shadow-sm"
+                  : "text-text-muted hover:text-text-primary",
+              ].join(" ")}
+            >
+              <Smartphone className="h-4 w-4" />
+              M-Pesa
+              <span className="text-[10px]">🇰🇪</span>
+            </button>
+          </div>
+        </div>
+
+        {payMethod === "mpesa" && (
+          <p className="mb-8 text-center text-sm text-text-muted">
+            Prices shown in Kenya Shillings (KES). You&apos;ll receive an M-Pesa STK push to confirm payment.
+          </p>
+        )}
 
         {/* Error */}
         {error && (
@@ -113,11 +193,26 @@ export default function PricingPage() {
               </div>
 
               {/* Price */}
-              <div className="mb-8 flex items-baseline gap-1">
-                <span className="text-5xl font-bold tabular-nums text-text-primary">
-                  ${plan.price}
-                </span>
-                <span className="text-sm text-text-disabled">/mo</span>
+              <div className="mb-8">
+                {payMethod === "card" ? (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-bold tabular-nums text-text-primary">
+                      ${plan.price}
+                    </span>
+                    <span className="text-sm text-text-disabled">/mo</span>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xs font-medium text-text-disabled">KES</span>
+                      <span className="text-5xl font-bold tabular-nums text-text-primary">
+                        {(KES_PRICES[plan.id] ?? 0).toLocaleString()}
+                      </span>
+                      <span className="text-sm text-text-disabled">/mo</span>
+                    </div>
+                    <p className="mt-1 text-xs text-text-disabled">≈ ${plan.price} USD</p>
+                  </div>
+                )}
               </div>
 
               {/* Features */}
@@ -135,17 +230,22 @@ export default function PricingPage() {
                 onClick={() => handleCheckout(plan.priceId, plan.id)}
                 disabled={loading === plan.id}
                 className={[
-                  "flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold transition-all",
+                  "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all",
                   plan.popular
                     ? "bg-cyan-500 text-bg-base shadow-glow-sm hover:bg-cyan-400 disabled:opacity-60"
                     : "border border-border bg-bg-surface text-text-primary hover:border-border-strong hover:bg-bg-elevated disabled:opacity-60",
                 ].join(" ")}
               >
                 {loading === plan.id ? (
-                  <span className="flex items-center gap-2">
+                  <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     Redirecting...
-                  </span>
+                  </>
+                ) : payMethod === "mpesa" ? (
+                  <>
+                    <Smartphone className="h-4 w-4" />
+                    Pay with M-Pesa
+                  </>
                 ) : (
                   plan.cta
                 )}
@@ -155,13 +255,18 @@ export default function PricingPage() {
         </div>
 
         {/* Footer note */}
-        <div className="mt-16 text-center">
+        <div className="mt-16 text-center space-y-2">
           <p className="text-sm text-text-disabled">
             All plans billed monthly. Cancel anytime.{" "}
             <Link href="/audit" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Not sure? Get a free audit →
             </Link>
           </p>
+          {payMethod === "mpesa" && (
+            <p className="text-xs text-text-disabled">
+              M-Pesa payments processed by Flutterwave. KES prices include all fees.
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -63,6 +63,9 @@ export interface Subscription {
   org_id: string
   stripe_subscription_id: string | null
   stripe_customer_id: string | null
+  flw_tx_ref: string | null
+  flw_transaction_id: string | null
+  payment_provider: "stripe" | "flutterwave"
   plan: string
   status: SubscriptionStatus
   current_period_start: string | null

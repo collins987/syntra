@@ -1,12 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 
-export function ManageSubscriptionButton() {
+export function ManageSubscriptionButton({
+  paymentProvider = "stripe",
+}: {
+  paymentProvider?: "stripe" | "flutterwave"
+}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleManage() {
+  async function handleManageStripe() {
     setLoading(true)
     setError(null)
     try {
@@ -20,11 +25,25 @@ export function ManageSubscriptionButton() {
     }
   }
 
+  if (paymentProvider === "flutterwave") {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <Link
+          href="mailto:billing@syntra.io?subject=Manage%20M-Pesa%20Subscription"
+          className="flex h-9 items-center rounded-xl border border-border-subtle bg-bg-surface px-5 text-sm text-text-muted transition-all hover:border-border hover:text-text-primary"
+        >
+          Contact billing →
+        </Link>
+        <p className="text-[11px] text-text-disabled">Paid via M-Pesa · Flutterwave</p>
+      </div>
+    )
+  }
+
   return (
     <div>
       {error && <p className="mb-2 text-xs text-error-400">{error}</p>}
       <button
-        onClick={handleManage}
+        onClick={handleManageStripe}
         disabled={loading}
         className="flex h-9 items-center rounded-xl border border-border-subtle bg-bg-surface px-5 text-sm text-text-muted transition-all hover:border-border hover:text-text-primary disabled:opacity-60"
       >

@@ -41,7 +41,13 @@ const INDUSTRIES = [
 export default function OnboardingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+
+  // Stripe flow
   const sessionId = searchParams.get("session_id")
+  // Flutterwave flow
+  const txRef = searchParams.get("tx_ref")
+  const flwTxId = searchParams.get("flw_tx_id")
+  const preselectedPlan = searchParams.get("plan") ?? ""
 
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -51,7 +57,7 @@ export default function OnboardingPage() {
     orgName: "",
     orgSlug: "",
     industry: "",
-    serviceType: "",
+    serviceType: preselectedPlan,
     projectName: "",
     goals: "",
   })
@@ -95,7 +101,7 @@ export default function OnboardingPage() {
       const data = (await res.json()) as { orgId?: string; error?: string }
       if (!res.ok || !data.orgId) throw new Error(data.error ?? "Setup failed")
 
-      // 2. If user came from Stripe checkout, link the subscription
+      // 2a. Stripe flow — link subscription via session_id
       if (sessionId) {
         const linkRes = await fetch("/api/stripe/link-subscription", {
           method: "POST",
@@ -103,8 +109,19 @@ export default function OnboardingPage() {
           body: JSON.stringify({ sessionId, orgId: data.orgId }),
         })
         if (!linkRes.ok) {
-          // Non-fatal — subscription can be linked manually
-          console.warn("[onboarding] Failed to link subscription")
+          console.warn("[onboarding] Failed to link Stripe subscription")
+        }
+      }
+
+      // 2b. Flutterwave flow — link subscription via tx_ref
+      if (txRef && flwTxId) {
+        const linkRes = await fetch("/api/flutterwave/link-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txRef, flwTxId, orgId: data.orgId }),
+        })
+        if (!linkRes.ok) {
+          console.warn("[onboarding] Failed to link Flutterwave subscription")
         }
       }
 
@@ -168,7 +185,7 @@ export default function OnboardingPage() {
         {step === 0 && <StepBusiness form={form} update={update} />}
         {step === 1 && <StepService form={form} update={update} />}
         {step === 2 && <StepGoals form={form} update={update} />}
-        {step === 3 && <StepLaunch form={form} sessionId={sessionId} />}
+        {step === 3 && <StepLaunch form={form} sessionId={sessionId} txRef={txRef} />}
 
         {/* Actions */}
         <div className="mt-8 flex items-center justify-between">
@@ -369,11 +386,15 @@ function StepGoals({
 function StepLaunch({
   form,
   sessionId,
+  txRef,
 }: {
   form: { orgName: string; serviceType: string; orgSlug: string }
   sessionId: string | null
+  txRef: string | null
 }) {
   const service = SERVICES.find((s) => s.id === form.serviceType)
+  const hasPaid = sessionId ?? txRef
+  const paymentLabel = txRef ? "M-Pesa payment confirmed ✓" : "Subscription confirmed ✓"
   return (
     <div>
       <h2 className="mb-1 text-2xl font-bold text-text-primary">Ready to launch.</h2>
@@ -384,7 +405,7 @@ function StepLaunch({
         <SummaryRow label="Organization" value={form.orgName || "—"} />
         <SummaryRow label="Workspace" value={form.orgSlug ? `syntra.io/${form.orgSlug}` : "—"} />
         <SummaryRow label="Starting with" value={service?.label ?? "—"} highlight />
-        {sessionId && <SummaryRow label="Payment" value="Subscription confirmed ✓" highlight />}
+        {hasPaid && <SummaryRow label="Payment" value={paymentLabel} highlight />}
       </div>
       <p className="mt-4 text-xs text-text-disabled text-center">
         You&apos;ll be redirected to your command center immediately after launch.

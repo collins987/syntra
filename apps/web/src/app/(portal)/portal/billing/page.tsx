@@ -88,7 +88,7 @@ export default async function BillingPage() {
                   </span>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-base font-semibold text-text-primary capitalize">
                       Syntra {subscription.plan}
                     </p>
@@ -99,13 +99,18 @@ export default async function BillingPage() {
                     >
                       {subscription.status.replace("_", " ")}
                     </span>
+                    {subscription.payment_provider === "flutterwave" && (
+                      <span className="rounded-md border border-border-subtle bg-bg-surface px-2 py-0.5 text-[11px] text-text-disabled">
+                        M-Pesa 🇰🇪
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 text-sm text-text-muted">
                     Renews {formatDate(subscription.current_period_end)}
                   </p>
                 </div>
               </div>
-              <ManageSubscriptionButton />
+              <ManageSubscriptionButton paymentProvider={subscription.payment_provider ?? "stripe"} />
             </div>
           ) : (
             <div className="flex items-center justify-between">
