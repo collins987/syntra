@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 
 export const metadata: Metadata = {
@@ -15,11 +16,8 @@ export default function HomePage() {
 
       {/* Nav */}
       <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-            <span className="text-xs font-bold text-bg-base">S</span>
-          </div>
-          <span className="text-sm font-semibold tracking-wide text-text-primary">SYNTRA</span>
+        <div className="flex items-center">
+          <Image src="/logo.png" alt="SYNTRA" width={40} height={40} className="h-10 w-auto" priority />
         </div>
         <div className="hidden items-center gap-6 text-sm text-text-muted md:flex">
           <a href="/services" className="hover:text-text-primary transition-colors">Services</a>
@@ -74,8 +72,20 @@ export default function HomePage() {
           </Link>
         </div>
 
+        {/* Hero banner */}
+        <div className="mt-16 w-full max-w-3xl overflow-hidden rounded-2xl border border-border-subtle shadow-[0_0_60px_rgba(0,229,255,0.08)]">
+          <Image
+            src="/logo-banner.png"
+            alt="SYNTRA — The AI Operating System for Modern Business"
+            width={1344}
+            height={768}
+            className="w-full"
+            priority
+          />
+        </div>
+
         {/* Stats */}
-        <div className="mt-20 grid grid-cols-3 gap-12 border-t border-border-subtle pt-12">
+        <div className="mt-16 grid grid-cols-3 gap-12 border-t border-border-subtle pt-12">
           {[
             { value: "42+", label: "Workflows automated" },
             { value: "98.7%", label: "Automation uptime" },

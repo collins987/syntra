@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
@@ -185,11 +186,8 @@ function PricingContent() {
 
       {/* Nav */}
       <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-            <span className="text-xs font-bold text-bg-base">S</span>
-          </div>
-          <span className="text-sm font-semibold tracking-wide text-text-primary">SYNTRA</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo.png" alt="SYNTRA" width={40} height={40} className="h-10 w-auto" priority />
         </Link>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-sm text-text-muted hover:text-text-primary transition-colors">

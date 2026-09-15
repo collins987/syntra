@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 
 const NAV_LINKS = [
@@ -10,11 +11,8 @@ const NAV_LINKS = [
 export function MarketingNav() {
   return (
     <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
-      <Link href="/" className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-          <span className="text-xs font-bold text-bg-base">S</span>
-        </div>
-        <span className="text-sm font-semibold tracking-wide text-text-primary">SYNTRA</span>
+      <Link href="/" className="flex items-center">
+        <Image src="/logo.png" alt="SYNTRA" width={40} height={40} className="h-10 w-auto" priority />
       </Link>
 
       <div className="hidden items-center gap-6 text-sm text-text-muted md:flex">
@@ -46,11 +44,8 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 grid gap-8 md:grid-cols-4">
           <div>
-            <Link href="/" className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-                <span className="text-xs font-bold text-bg-base">S</span>
-              </div>
-              <span className="text-sm font-semibold text-text-primary">SYNTRA</span>
+            <Link href="/" className="mb-3 flex items-center">
+              <Image src="/logo.png" alt="SYNTRA" width={32} height={32} className="h-8 w-auto" />
             </Link>
             <p className="text-xs text-text-disabled leading-relaxed">
               The AI Operating System for Modern Business. Build. Automate. Scale.

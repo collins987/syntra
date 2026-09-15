@@ -14,11 +14,13 @@ export const metadata: Metadata = {
     siteName: "SYNTRA",
     title: "SYNTRA — AI-Powered Business Automation",
     description: "Build. Automate. Scale.",
+    images: [{ url: "/logo-banner.png", width: 1344, height: 768, alt: "SYNTRA — The AI Operating System for Modern Business" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "SYNTRA",
     description: "AI-Powered Business Automation",
+    images: ["/logo-banner.png"],
   },
   robots: {
     index: true,
