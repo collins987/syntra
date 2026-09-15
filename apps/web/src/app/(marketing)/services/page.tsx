@@ -223,7 +223,7 @@ export default function ServicesPage() {
         <div className="mx-auto max-w-xl">
           <h2 className="mb-4 text-2xl font-bold text-text-primary">Not sure where to start?</h2>
           <p className="mb-8 text-sm text-text-muted">
-            Take the free audit. We'll look at your current setup and tell you exactly which
+            Take the free audit. We&apos;ll look at your current setup and tell you exactly which
             product will have the biggest impact for your business.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

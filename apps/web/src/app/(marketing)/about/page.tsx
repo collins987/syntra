@@ -155,7 +155,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-xl">
           <h2 className="mb-4 text-2xl font-bold text-text-primary">Ready to automate?</h2>
           <p className="mb-8 text-sm text-text-muted">
-            Start with a free 15-minute audit. We'll show you exactly which parts of your
+            Start with a free 15-minute audit. We&apos;ll show you exactly which parts of your
             business can be automated this month.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
