@@ -72,20 +72,8 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Hero banner */}
-        <div className="mt-16 w-full max-w-3xl overflow-hidden rounded-2xl border border-border-subtle shadow-[0_0_60px_rgba(0,229,255,0.08)]">
-          <Image
-            src="/logo-banner.png"
-            alt="SYNTRA — The AI Operating System for Modern Business"
-            width={1344}
-            height={768}
-            className="w-full"
-            priority
-          />
-        </div>
-
         {/* Stats */}
-        <div className="mt-16 grid grid-cols-3 gap-12 border-t border-border-subtle pt-12">
+        <div className="mt-20 grid grid-cols-3 gap-12 border-t border-border-subtle pt-12">
           {[
             { value: "42+", label: "Workflows automated" },
             { value: "98.7%", label: "Automation uptime" },
