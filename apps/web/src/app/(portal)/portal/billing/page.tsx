@@ -99,7 +99,7 @@ export default async function BillingPage() {
                     >
                       {subscription.status.replace("_", " ")}
                     </span>
-                    {subscription.payment_provider === "flutterwave" && (
+                    {subscription.payment_provider === "intasend" && (
                       <span className="rounded-md border border-border-subtle bg-bg-surface px-2 py-0.5 text-[11px] text-text-disabled">
                         M-Pesa 🇰🇪
                       </span>
@@ -110,7 +110,11 @@ export default async function BillingPage() {
                   </p>
                 </div>
               </div>
-              <ManageSubscriptionButton paymentProvider={subscription.payment_provider ?? "stripe"} />
+              <ManageSubscriptionButton
+                paymentProvider={
+                  (subscription.payment_provider as "stripe" | "intasend") ?? "stripe"
+                }
+              />
             </div>
           ) : (
             <div className="flex items-center justify-between">

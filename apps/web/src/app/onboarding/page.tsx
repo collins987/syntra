@@ -44,9 +44,9 @@ export default function OnboardingPage() {
 
   // Stripe flow
   const sessionId = searchParams.get("session_id")
-  // Flutterwave flow
-  const txRef = searchParams.get("tx_ref")
-  const flwTxId = searchParams.get("flw_tx_id")
+  // IntaSend M-Pesa flow
+  const intasendRef = searchParams.get("intasend_ref")
+  const intasendInvoiceId = searchParams.get("invoice_id")
   const preselectedPlan = searchParams.get("plan") ?? ""
 
   const [step, setStep] = useState(0)
@@ -113,15 +113,20 @@ export default function OnboardingPage() {
         }
       }
 
-      // 2b. Flutterwave flow — link subscription via tx_ref
-      if (txRef && flwTxId) {
-        const linkRes = await fetch("/api/flutterwave/link-subscription", {
+      // 2b. IntaSend M-Pesa flow — link subscription via invoice_id
+      if (intasendRef && intasendInvoiceId) {
+        const linkRes = await fetch("/api/intasend/link-subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ txRef, flwTxId, orgId: data.orgId }),
+          body: JSON.stringify({
+            apiRef: intasendRef,
+            invoiceId: intasendInvoiceId,
+            orgId: data.orgId,
+            planId: form.serviceType || preselectedPlan,
+          }),
         })
         if (!linkRes.ok) {
-          console.warn("[onboarding] Failed to link Flutterwave subscription")
+          console.warn("[onboarding] Failed to link IntaSend subscription")
         }
       }
 
@@ -185,7 +190,7 @@ export default function OnboardingPage() {
         {step === 0 && <StepBusiness form={form} update={update} />}
         {step === 1 && <StepService form={form} update={update} />}
         {step === 2 && <StepGoals form={form} update={update} />}
-        {step === 3 && <StepLaunch form={form} sessionId={sessionId} txRef={txRef} />}
+        {step === 3 && <StepLaunch form={form} sessionId={sessionId} intasendRef={intasendRef} />}
 
         {/* Actions */}
         <div className="mt-8 flex items-center justify-between">
@@ -386,15 +391,15 @@ function StepGoals({
 function StepLaunch({
   form,
   sessionId,
-  txRef,
+  intasendRef,
 }: {
   form: { orgName: string; serviceType: string; orgSlug: string }
   sessionId: string | null
-  txRef: string | null
+  intasendRef: string | null
 }) {
   const service = SERVICES.find((s) => s.id === form.serviceType)
-  const hasPaid = sessionId ?? txRef
-  const paymentLabel = txRef ? "M-Pesa payment confirmed ✓" : "Subscription confirmed ✓"
+  const hasPaid = sessionId ?? intasendRef
+  const paymentLabel = intasendRef ? "M-Pesa payment confirmed ✓" : "Subscription confirmed ✓"
   return (
     <div>
       <h2 className="mb-1 text-2xl font-bold text-text-primary">Ready to launch.</h2>

@@ -6,7 +6,7 @@ import Link from "next/link"
 export function ManageSubscriptionButton({
   paymentProvider = "stripe",
 }: {
-  paymentProvider?: "stripe" | "flutterwave"
+  paymentProvider?: "stripe" | "intasend"
 }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +25,7 @@ export function ManageSubscriptionButton({
     }
   }
 
-  if (paymentProvider === "flutterwave") {
+  if (paymentProvider === "intasend") {
     return (
       <div className="flex flex-col items-end gap-1">
         <Link
@@ -34,7 +34,7 @@ export function ManageSubscriptionButton({
         >
           Contact billing →
         </Link>
-        <p className="text-[11px] text-text-disabled">Paid via M-Pesa · Flutterwave</p>
+        <p className="text-[11px] text-text-disabled">Paid via M-Pesa · IntaSend</p>
       </div>
     )
   }
