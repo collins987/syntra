@@ -40,7 +40,13 @@ const SUGGESTIONS: Record<string, string[]> = {
   ],
 }
 
-export function ChatClient({ agents }: { agents: ChatAgent[] }) {
+export function ChatClient({
+  agents,
+  canDecide,
+}: {
+  agents: ChatAgent[]
+  canDecide: boolean
+}) {
   const [activeKey, setActiveKey] = useState(agents[0]?.key ?? "ava")
   const [conversations, setConversations] = useState<Record<string, Message[]>>({})
   const [meta, setMeta] = useState<Record<string, TurnMeta>>({})
@@ -196,7 +202,7 @@ export function ChatClient({ agents }: { agents: ChatAgent[] }) {
             <div className="mt-5 rounded-xl border border-warning-400/30 bg-warning-400/5 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-warning-400">
                 <ShieldAlert className="h-4 w-4" />
-                Waiting for your approval
+                {canDecide ? "Waiting for your approval" : "Waiting for an admin's approval"}
               </p>
               <ul className="mt-2 space-y-1">
                 {turnMeta.approvals.map((a) => (

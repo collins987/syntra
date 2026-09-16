@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { createServiceClient } from "@/lib/supabase/service"
 import { AGENTS, isAgentKey } from "@/lib/ai/agents"
+import { requirePlatformAdmin } from "@/lib/auth/platform-admin"
 
 export const metadata: Metadata = { title: "AI | Admin" }
 
@@ -10,6 +11,8 @@ function monthStartIso(): string {
 }
 
 export default async function AdminAiPage() {
+  await requirePlatformAdmin()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
 

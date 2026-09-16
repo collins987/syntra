@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { getEconomics } from "@/lib/economics"
+import { requirePlatformAdmin } from "@/lib/auth/platform-admin"
 
 export const metadata: Metadata = { title: "Economics | Admin" }
 
@@ -8,6 +9,8 @@ function usd(n: number): string {
 }
 
 export default async function AdminEconomicsPage() {
+  await requirePlatformAdmin()
+
   const { orgs, totals, period } = await getEconomics()
   const billing = orgs.filter((o) => o.revenueUsd > 0)
   const unprofitable = billing.filter((o) => o.grossContributionUsd <= 0)

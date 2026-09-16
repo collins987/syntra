@@ -97,7 +97,12 @@ export default function OnboardingPage() {
           body: JSON.stringify({ sessionId, orgId: data.orgId }),
         })
         if (!linkRes.ok) {
-          console.warn("[onboarding] Failed to link Stripe subscription")
+          // A paid customer must never reach the dashboard without their plan.
+          // Retrying is safe: onboarding and linking are both idempotent.
+          const linkData = (await linkRes.json().catch(() => ({}))) as { error?: string }
+          throw new Error(
+            `Your account was created, but we couldn't attach your payment: ${linkData.error ?? "unknown error"}. Please try again or contact support.`
+          )
         }
       }
 
@@ -110,11 +115,15 @@ export default function OnboardingPage() {
             apiRef: intasendRef,
             invoiceId: intasendInvoiceId,
             orgId: data.orgId,
-            planId: form.serviceType || preselectedPlan,
+            // The plan that was paid for, not the one selected afterwards.
+            planId: preselectedPlan || form.serviceType,
           }),
         })
         if (!linkRes.ok) {
-          console.warn("[onboarding] Failed to link IntaSend subscription")
+          const linkData = (await linkRes.json().catch(() => ({}))) as { error?: string }
+          throw new Error(
+            `Your account was created, but we couldn't attach your M-Pesa payment: ${linkData.error ?? "unknown error"}. Please try again or contact support.`
+          )
         }
       }
 

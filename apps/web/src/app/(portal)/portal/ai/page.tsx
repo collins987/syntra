@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { getUserOrg } from "@/lib/org"
+import { canDecideApprovals, getUserOrg } from "@/lib/org"
 import { ensureAgents, effectiveAutonomy } from "@/lib/ai/policy"
 import { AGENTS } from "@/lib/ai/agents"
 import { NoOrg } from "@/components/portal/primitives"
@@ -28,5 +28,5 @@ export default async function AiCenterPage() {
     })
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  return <ChatClient agents={agents} />
+  return <ChatClient agents={agents} canDecide={canDecideApprovals(org.role)} />
 }

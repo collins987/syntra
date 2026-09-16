@@ -1,98 +1,143 @@
 import { NextRequest, NextResponse } from "next/server"
-import { n8n } from "@/lib/n8n"
+import * as Sentry from "@sentry/nextjs"
+import { n8n, type N8nWorkflow } from "@/lib/n8n"
+import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
+import { getUserOrg, isOrgAdmin } from "@/lib/org"
+import { isPlatformAdmin } from "@/lib/auth/platform-admin"
+import { safeEqual } from "@/lib/auth/secrets"
 
-// Called by Vercel Cron (configured in vercel.json) or manually via POST.
-// Syncs all n8n workflows into the automations table for every org that has
-// N8N_ORG_ID set, or all orgs that have n8n_workflow_id rows already.
+// Pulls workflows from n8n into the automations table.
+// See SECURITY_REMEDIATION_PLAN.md §1 (F-01).
 //
-// Protection: CRON_SECRET header must match the env var.
+// Three callers, each authorised explicitly — anything else is refused:
+//   GitHub Actions cron  x-cron-secret (constant-time)  → all orgs
+//   Platform admin       session + app_metadata         → all orgs
+//   Client admin         session + CLIENT_ADMIN         → only their org's existing rows
+//
+// POST only: a GET that writes can be triggered by links, prefetchers and crawlers.
 
-export async function POST(req: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (secret && req.headers.get("x-cron-secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+type Scope = { kind: "all" } | { kind: "org"; orgId: string }
+
+interface AutomationRow {
+  id: string
+  org_id: string
+  n8n_workflow_id: string
+}
+
+async function authorize(req: NextRequest): Promise<Scope | NextResponse> {
+  const provided = req.headers.get("x-cron-secret")
+
+  if (provided !== null) {
+    const expected = process.env.CRON_SECRET
+    // Fail closed: an unset secret is an outage, never an open endpoint.
+    if (!expected) {
+      return NextResponse.json({ error: "Sync is not configured" }, { status: 503 })
+    }
+    if (!safeEqual(provided, expected)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    return { kind: "all" }
   }
 
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  if (isPlatformAdmin(user)) return { kind: "all" }
+
+  const org = await getUserOrg()
+  if (org && isOrgAdmin(org.role)) return { kind: "org", orgId: org.org_id }
+
+  return NextResponse.json(
+    { error: "Only an organisation admin can sync automations" },
+    { status: 403 }
+  )
+}
+
+export async function POST(req: NextRequest) {
+  const scope = await authorize(req)
+  if (scope instanceof NextResponse) return scope
+
+  let workflows: N8nWorkflow[]
   try {
-    const { data: workflows } = await n8n.workflows()
+    workflows = (await n8n.workflows()).data ?? []
+  } catch (err) {
+    // Stopped VM, cold start timeout or missing N8N_* config. 503 tells the
+    // GitHub Action this is "unavailable", not a failure. Details stay server-side.
+    console.error("[n8n-sync] n8n unavailable:", err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: "n8n is unavailable right now" }, { status: 503 })
+  }
 
-    if (!workflows?.length) {
-      return NextResponse.json({ synced: 0, message: "No workflows found in n8n" })
-    }
+  if (workflows.length === 0) {
+    return NextResponse.json({ synced: 0, total: 0 })
+  }
 
-    const db = createServiceClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const any = db as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any
 
-    // Fetch all orgs that already have automations linked to n8n
-    const { data: existing } = (await any
+  try {
+    let query = db
       .from("automations")
-      .select("id, org_id, n8n_workflow_id, name, status")
-      .not("n8n_workflow_id", "is", null)) as {
-      data: Array<{
-        id: string
-        org_id: string
-        n8n_workflow_id: string
-        name: string
-        status: string
-      }> | null
+      .select("id, org_id, n8n_workflow_id")
+      .not("n8n_workflow_id", "is", null)
+    if (scope.kind === "org") query = query.eq("org_id", scope.orgId)
+
+    const { data: existing, error: readError } = (await query) as {
+      data: AutomationRow[] | null
+      error: Error | null
     }
+    if (readError) throw readError
 
-    const existingMap = new Map(
-      (existing ?? []).map((a) => [a.n8n_workflow_id, a])
-    )
+    const byWorkflowId = new Map((existing ?? []).map((a) => [a.n8n_workflow_id, a]))
 
-    // Determine the default org to assign new workflows to.
-    // Uses N8N_ORG_ID env var; if not set, we skip inserting new rows and only
-    // update existing ones — avoids assigning workflows to the wrong org.
-    const defaultOrgId = process.env.N8N_ORG_ID ?? null
+    // New workflows are assigned to N8N_ORG_ID, and only on a global sync. A
+    // client admin can refresh their own automations but never claim new ones.
+    const defaultOrgId = scope.kind === "all" ? (process.env.N8N_ORG_ID ?? null) : null
 
     let synced = 0
-    const errors: string[] = []
+    let failed = 0
 
     for (const wf of workflows) {
-      try {
-        const existing = existingMap.get(wf.id)
+      const row = byWorkflowId.get(wf.id)
+      const status = wf.active ? "active" : "paused"
 
-        if (existing) {
-          // Update name and active status from n8n
-          await any.from("automations").update({
-            name: wf.name,
-            status: wf.active ? "active" : "paused",
-            updated_at: new Date().toISOString(),
-          }).eq("id", existing.id)
-          synced++
-        } else if (defaultOrgId) {
-          // Insert new automation row for this workflow
-          await any.from("automations").insert({
-            org_id: defaultOrgId,
-            name: wf.name,
-            workflow_code: `n8n-${wf.id}`,
-            n8n_workflow_id: wf.id,
-            status: wf.active ? "active" : "paused",
-            config: { tags: wf.tags ?? [] },
-          })
-          synced++
-        }
-      } catch (err) {
-        errors.push(`${wf.id}: ${err instanceof Error ? err.message : String(err)}`)
+      if (row) {
+        const { error } = await db
+          .from("automations")
+          .update({ name: wf.name, status, updated_at: new Date().toISOString() })
+          .eq("id", row.id)
+          .eq("org_id", row.org_id)
+        if (error) failed++
+        else synced++
+      } else if (defaultOrgId) {
+        const { error } = await db.from("automations").insert({
+          org_id: defaultOrgId,
+          name: wf.name,
+          workflow_code: `n8n-${wf.id}`,
+          n8n_workflow_id: wf.id,
+          status,
+          config: { tags: wf.tags ?? [] },
+        })
+        if (error) failed++
+        else synced++
       }
+    }
+
+    if (failed > 0) {
+      Sentry.captureMessage(`[n8n-sync] ${failed} workflow(s) failed to sync`, "warning")
     }
 
     return NextResponse.json({
       synced,
       total: workflows.length,
-      ...(errors.length ? { errors } : {}),
+      ...(failed > 0 ? { failed } : {}),
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Sync failed"
-    console.error("[n8n-sync]", message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    Sentry.captureException(err)
+    console.error("[n8n-sync]", err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: "Sync failed" }, { status: 500 })
   }
-}
-
-// Vercel Cron GET handler (cron jobs use GET)
-export async function GET(req: NextRequest) {
-  return POST(req)
 }

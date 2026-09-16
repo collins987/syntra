@@ -1,83 +1,141 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 import { sendEmail, APP_URL } from "@/lib/resend"
 import { WelcomeEmail } from "@/emails/welcome"
-import { PLANS } from "@/lib/pricing"
+import { getPlan, isPlanId } from "@/lib/pricing"
 
-const PLAN_LABELS: Record<string, string> = Object.fromEntries(
-  PLANS.map((p) => [p.id, p.name])
-)
+// Creates the organisation, its first admin membership and first project.
+//
+// Identity comes from the session; the writes use the service role because
+// members have no write access to org data (migration 011, SECURITY_REMEDIATION_PLAN.md §3).
+// Every value that reaches the database is validated here first.
+//
+// organizations.plan records the plan the customer chose. It is overwritten by
+// the verified plan when a payment is linked, and nothing grants access based on it.
 
 interface OnboardingPayload {
-  orgName: string
-  orgSlug: string
-  industry: string
-  serviceType: string
-  projectName: string
-  goals: string
+  orgName?: unknown
+  orgSlug?: unknown
+  industry?: unknown
+  serviceType?: unknown
+  projectName?: unknown
+  goals?: unknown
+}
+
+const text = (value: unknown, max: number): string =>
+  typeof value === "string" ? value.trim().slice(0, max) : ""
+
+/** Canonical slug: lowercase a–z, 0–9 and single hyphens, no hyphen at either end. */
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50)
+    .replace(/-+$/g, "")
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+  }
+
+  let body: OnboardingPayload
   try {
-    const body = (await req.json()) as OnboardingPayload
-    const { orgName, orgSlug, industry, serviceType, projectName, goals } = body
+    body = (await req.json()) as OnboardingPayload
+  } catch {
+    return NextResponse.json({ error: "Body must be valid JSON" }, { status: 400 })
+  }
 
-    if (!orgName || !orgSlug || !serviceType) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
-    }
+  const orgName = text(body.orgName, 100)
+  const slug = toSlug(text(body.orgSlug, 100) || orgName)
+  const industry = text(body.industry, 50)
+  const serviceType = text(body.serviceType, 20)
+  const projectName = text(body.projectName, 120)
+  const goals = text(body.goals, 2000)
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  if (orgName.length < 2) {
+    return NextResponse.json({ error: "Business name is required" }, { status: 400 })
+  }
+  if (slug.length < 2) {
+    return NextResponse.json(
+      { error: "Choose a URL name with at least two letters or numbers" },
+      { status: 400 }
+    )
+  }
+  if (!isPlanId(serviceType)) {
+    return NextResponse.json({ error: "Choose one of the available plans" }, { status: 400 })
+  }
 
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-
-    // Return existing org if already onboarded
+  try {
+    // One organisation per user for now — a repeat submit returns the existing one.
     const { data: existingMember } = (await db
       .from("organization_members")
       .select("org_id")
       .eq("user_id", user.id)
+      .limit(1)
       .maybeSingle()) as { data: { org_id: string } | null }
 
     if (existingMember?.org_id) {
       return NextResponse.json({ orgId: existingMember.org_id })
     }
 
-    // Create org
     const { data: org, error: orgError } = (await db
       .from("organizations")
-      .insert({ name: orgName, slug: orgSlug, plan: serviceType, settings: { industry } })
+      .insert({ name: orgName, slug, plan: serviceType, settings: { industry } })
       .select("id")
-      .single()) as { data: { id: string } | null; error: Error | null }
+      .single()) as { data: { id: string } | null; error: { code?: string } | null }
 
-    if (orgError || !org) {
-      throw orgError ?? new Error("Failed to create organization")
+    if (orgError?.code === "23505") {
+      return NextResponse.json(
+        { error: `The URL name "${slug}" is already taken. Please choose another.` },
+        { status: 409 }
+      )
     }
+    if (orgError || !org) throw orgError ?? new Error("Failed to create organization")
 
-    // Create membership
-    const { error: memberError } = (await db.from("organization_members").insert({
+    const { error: memberError } = await db.from("organization_members").insert({
       org_id: org.id,
       user_id: user.id,
       role: "CLIENT_ADMIN",
-    })) as { error: Error | null }
-    if (memberError) throw memberError
+    })
+    if (memberError) {
+      // Never leave an organisation nobody can reach.
+      await db.from("organizations").delete().eq("id", org.id)
+      throw memberError
+    }
 
-    // Create first project
-    const { error: projectError } = (await db.from("projects").insert({
+    const planName = getPlan(serviceType)?.name ?? serviceType
+
+    const { error: projectError } = await db.from("projects").insert({
       org_id: org.id,
-      name: projectName || `${orgName} — ${serviceType}`,
+      name: projectName || `${orgName} — ${planName}`,
       service_type: serviceType,
       status: "onboarding",
       onboarding_data: { goals, industry },
       brand_data: {},
-    })) as { error: Error | null }
-    if (projectError) throw projectError
+    })
+    // The org and membership are usable without a project; don't fail the signup.
+    if (projectError) Sentry.captureException(projectError)
+
+    await db.from("audit_logs").insert({
+      org_id: org.id,
+      user_id: user.id,
+      action: "org_created",
+      resource_type: "organization",
+      resource_id: org.id,
+      metadata: { plan: serviceType },
+    })
 
     if (user.email) {
       await sendEmail({
@@ -87,7 +145,7 @@ export async function POST(req: NextRequest) {
         orgId: org.id,
         react: WelcomeEmail({
           orgName,
-          planName: PLAN_LABELS[serviceType] ?? serviceType,
+          planName,
           dashboardUrl: `${APP_URL}/portal/dashboard`,
         }),
       })
@@ -95,7 +153,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ orgId: org.id })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Onboarding failed"
-    return NextResponse.json({ error: message }, { status: 500 })
+    Sentry.captureException(err)
+    console.error("[onboarding]", err instanceof Error ? err.message : err)
+    return NextResponse.json(
+      { error: "We couldn't finish setting up your account. Please try again." },
+      { status: 500 }
+    )
   }
 }

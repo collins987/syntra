@@ -6,6 +6,20 @@ export interface UserOrg {
   userId: string
 }
 
+/** The client's own administrator. Unknown roles are never admins. */
+export function isOrgAdmin(role: string): boolean {
+  return role === "CLIENT_ADMIN"
+}
+
+/**
+ * Approving releases an action to the outside world in the business's name, so
+ * only the client's own admin decides. SYNTRA staff roles deliberately do not —
+ * the client owns the decision.
+ */
+export function canDecideApprovals(role: string): boolean {
+  return isOrgAdmin(role)
+}
+
 export async function getUserOrg(): Promise<UserOrg | null> {
   const supabase = await createClient()
   const {

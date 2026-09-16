@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { Zap, Play, Pause, AlertCircle, FileEdit } from "lucide-react"
-import { getUserOrg } from "@/lib/org"
+import { getUserOrg, isOrgAdmin } from "@/lib/org"
 import { getManagedAutomations, type ManagedAutomation } from "@/lib/automation-manager"
 import {
   PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, Badge, timeAgo, NoOrg,
@@ -42,7 +42,7 @@ export default async function AutomationsPage() {
             ? "Nothing running yet"
             : `${summary.total} workflow${summary.total === 1 ? "" : "s"} · ${summary.active} active`
         }
-        actions={<SyncButton />}
+        actions={isOrgAdmin(org.role) ? <SyncButton /> : undefined}
       />
       <PageBody>
         {automations.length === 0 ? (

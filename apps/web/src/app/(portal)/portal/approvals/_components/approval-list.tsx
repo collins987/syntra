@@ -14,6 +14,9 @@ export interface ApprovalItem {
   status: string
   createdAt: string
   expiresAt: string
+  /** Approved, but the action itself did not complete. */
+  executionFailed: boolean
+  executionError: string | null
 }
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -26,9 +29,12 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 export function ApprovalList({
   pending,
   decided,
+  canDecide,
 }: {
   pending: ApprovalItem[]
   decided: ApprovalItem[]
+  /** Only a client admin may decide; members see the queue read-only. */
+  canDecide: boolean
 }) {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -64,8 +70,12 @@ export function ApprovalList({
 
       {pending.length > 0 && (
         <Panel
-          title="Waiting for you"
-          description="Nothing here has happened yet. It runs only if you approve it."
+          title={canDecide ? "Waiting for you" : "Waiting for an admin"}
+          description={
+            canDecide
+              ? "Nothing here has happened yet. It runs only if you approve it."
+              : "Nothing here has happened yet. It runs only if an admin in your organisation approves it."
+          }
         >
           <div className="divide-y divide-border-subtle/50">
             {pending.map((item) => (
@@ -84,28 +94,34 @@ export function ApprovalList({
                   </p>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    onClick={() => decide(item.id, "approve")}
-                    disabled={busyId !== null}
-                    className="flex h-9 items-center gap-1.5 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400 disabled:opacity-50"
-                  >
-                    {busyId === item.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Check className="h-3.5 w-3.5" />
-                    )}
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => decide(item.id, "reject")}
-                    disabled={busyId !== null}
-                    className="flex h-9 items-center gap-1.5 rounded-xl border border-border-subtle bg-bg-surface px-4 text-sm text-text-muted transition-colors hover:border-border hover:text-text-primary disabled:opacity-50"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    Reject
-                  </button>
-                </div>
+                {canDecide ? (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => decide(item.id, "approve")}
+                      disabled={busyId !== null}
+                      className="flex h-9 items-center gap-1.5 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400 disabled:opacity-50"
+                    >
+                      {busyId === item.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => decide(item.id, "reject")}
+                      disabled={busyId !== null}
+                      className="flex h-9 items-center gap-1.5 rounded-xl border border-border-subtle bg-bg-surface px-4 text-sm text-text-muted transition-colors hover:border-border hover:text-text-primary disabled:opacity-50"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <p className="shrink-0 self-center text-xs text-text-disabled">
+                    Needs an admin to approve
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -122,8 +138,15 @@ export function ApprovalList({
                   <p className="mt-0.5 text-[11px] text-text-disabled">
                     {item.agentName} · {timeAgo(item.createdAt)}
                   </p>
+                  {item.executionFailed && item.executionError && (
+                    <p className="mt-1 text-[11px] text-error-400">{item.executionError}</p>
+                  )}
                 </div>
-                <Badge tone={STATUS_TONE[item.status] ?? "neutral"}>{item.status}</Badge>
+                {item.executionFailed ? (
+                  <Badge tone="bad">approved · failed</Badge>
+                ) : (
+                  <Badge tone={STATUS_TONE[item.status] ?? "neutral"}>{item.status}</Badge>
+                )}
               </div>
             ))}
           </div>

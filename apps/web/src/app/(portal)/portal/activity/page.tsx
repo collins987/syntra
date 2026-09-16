@@ -19,6 +19,13 @@ const ACTION_LABELS: Record<string, string> = {
   invoice_paid: "Invoice paid",
   subscription_updated: "Subscription updated",
   settings_updated: "Settings updated",
+  "approval.approved": "Agent action approved",
+  "approval.rejected": "Agent action rejected",
+  "ai_agent.updated": "AI agent settings changed",
+  "ai_budget.updated": "AI budget changed",
+  "integration.connected": "Integration connected",
+  "integration.disconnected": "Integration disconnected",
+  "workflow_token.created": "Workflow token created",
 }
 
 function formatTs(iso: string) {

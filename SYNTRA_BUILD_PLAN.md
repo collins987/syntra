@@ -366,7 +366,7 @@ Nothing in this plan can start until the existing half-configured infrastructure
 - [ ] Create 4 Stripe products (Sites, Flow, **Marketing**, OS) → price IDs → Vercel
 - [ ] Configure Stripe webhook → copy `STRIPE_WEBHOOK_SECRET`
 - [ ] Add A record `@ → 76.76.21.21` at the .tech registrar
-- [ ] Set `is_admin: true` on your own Supabase Auth user
+- [ ] Set `is_admin: true` in **app_metadata** (not user_metadata) on your own Supabase Auth user — SQL in `SECURITY_REMEDIATION_PLAN.md` §6
 - [ ] Rename org `0bd49ad6-e2a6-4e53-85e3-566bb972965b` → "SYNTRA Internal"
 
 **Acceptance:** `/portal/automations` → Sync button returns a non-zero workflow count. A test Stripe checkout completes and writes a `subscriptions` row. `/admin` loads.

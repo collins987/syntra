@@ -93,7 +93,8 @@ async function buildContext(orgId: string): Promise<ActionContext> {
   }
 }
 
-async function logBlocked(
+/** Records a refused action. Every refusal is logged — nothing is denied silently. */
+export async function logBlocked(
   orgId: string,
   capability: string,
   input: unknown,

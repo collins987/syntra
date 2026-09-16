@@ -1,17 +1,10 @@
 import type { ReactNode } from "react"
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { requirePlatformAdmin } from "@/lib/auth/platform-admin"
 import { AdminNav } from "./_components/admin-nav"
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user || !user.user_metadata?.["is_admin"]) {
-    redirect("/portal/dashboard")
-  }
+  // Each page repeats this check; the layout alone is not the security boundary.
+  const user = await requirePlatformAdmin()
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base">

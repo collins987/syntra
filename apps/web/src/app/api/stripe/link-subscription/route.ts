@@ -1,41 +1,58 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { stripe } from "@/lib/stripe"
-import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 import { planFromStripePriceId } from "@/lib/pricing"
+import { authorizeBillingLink, recordLinkedPlan, refuseIfLinkedElsewhere } from "@/lib/billing-link"
+
+// Links a completed Stripe Checkout session to the caller's organisation.
+// See SECURITY_REMEDIATION_PLAN.md §3. The whole claim is verified: the caller is
+// the org's admin, the session is theirs and complete, the price is a known plan,
+// and the subscription isn't already attached to another org.
 
 interface StripeSubShape {
   id: string
   status: string
-  customer: string
   current_period_start: number
   current_period_end: number
   items: { data: Array<{ price: { id: string } }> }
 }
 
 export async function POST(req: NextRequest) {
+  let body: { sessionId?: unknown; orgId?: unknown }
   try {
-    const { sessionId, orgId } = (await req.json()) as {
-      sessionId: string
-      orgId: string
+    body = (await req.json()) as typeof body
+  } catch {
+    return NextResponse.json({ error: "Body must be valid JSON" }, { status: 400 })
+  }
+
+  const sessionId = typeof body.sessionId === "string" ? body.sessionId : ""
+  if (!/^cs_(test|live)_[A-Za-z0-9]{10,200}$/.test(sessionId)) {
+    return NextResponse.json({ error: "A valid sessionId is required" }, { status: 400 })
+  }
+
+  const caller = await authorizeBillingLink(body.orgId)
+  if (caller instanceof NextResponse) return caller
+
+  try {
+    let session
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["subscription"] })
+    } catch {
+      return NextResponse.json({ error: "Checkout session not found" }, { status: 404 })
     }
 
-    if (!sessionId || !orgId) {
-      return NextResponse.json({ error: "sessionId and orgId are required" }, { status: 400 })
+    // The session was created for a signed-in user (api/stripe/checkout sets
+    // metadata.user_id). Someone else's session id must not attach their payment.
+    if (session.metadata?.["user_id"] !== caller.user.id) {
+      return NextResponse.json(
+        { error: "This checkout session belongs to a different account" },
+        { status: 403 }
+      )
     }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    if (session.status !== "complete") {
+      return NextResponse.json({ error: "Checkout is not complete" }, { status: 400 })
     }
-
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["subscription"],
-    })
-
     if (!session.subscription || typeof session.subscription === "string") {
       return NextResponse.json({ error: "No subscription in session" }, { status: 400 })
     }
@@ -43,36 +60,48 @@ export async function POST(req: NextRequest) {
     const sub = session.subscription as unknown as StripeSubShape
     const priceId = sub.items.data[0]?.price?.id ?? ""
 
-    // Never guess the plan — recording the wrong tier mis-prices the account and
-    // under-delivers the service the customer actually paid for.
+    // Never guess the plan — recording the wrong tier mis-prices the account.
     const plan = planFromStripePriceId(priceId)
     if (!plan) {
+      Sentry.captureMessage(`[stripe-link] unrecognised price ${priceId}`, "error")
       return NextResponse.json(
-        { error: `Unrecognised Stripe price ${priceId}. Check NEXT_PUBLIC_STRIPE_PRICE_* env vars.` },
+        { error: "This plan isn't recognised. Our team has been notified." },
         { status: 400 }
       )
     }
 
+    const conflict = await refuseIfLinkedElsewhere("stripe_subscription_id", sub.id, caller.orgId)
+    if (conflict) return conflict
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = (await (supabase as any).from("subscriptions").upsert(
+    const db = createServiceClient() as any
+    const { error } = await db.from("subscriptions").upsert(
       {
-        org_id: orgId,
+        org_id: caller.orgId,
         stripe_subscription_id: sub.id,
-        stripe_customer_id: session.customer as string,
+        stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
         plan,
         status: sub.status,
         current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-        metadata: { session_id: sessionId },
+        metadata: { session_id: sessionId, user_id: caller.user.id },
       },
       { onConflict: "stripe_subscription_id" }
-    )) as { error: Error | null }
-
+    )
     if (error) throw error
 
-    return NextResponse.json({ success: true })
+    await recordLinkedPlan({
+      orgId: caller.orgId,
+      userId: caller.user.id,
+      plan,
+      provider: "stripe",
+      reference: sub.id,
+    })
+
+    return NextResponse.json({ success: true, plan })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to link subscription"
-    return NextResponse.json({ error: message }, { status: 500 })
+    Sentry.captureException(err)
+    console.error("[stripe-link]", err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: "Failed to link subscription" }, { status: 500 })
   }
 }

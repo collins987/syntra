@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { createServiceClient } from "@/lib/supabase/service"
 import { n8n } from "@/lib/n8n"
+import { requirePlatformAdmin } from "@/lib/auth/platform-admin"
 
 export const metadata: Metadata = { title: "Health | Admin" }
 
@@ -22,6 +23,8 @@ async function probeN8n(): Promise<{ reachable: boolean; detail: string }> {
 }
 
 export default async function AdminHealthPage() {
+  await requirePlatformAdmin()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
   const since24h = new Date(Date.now() - 86_400_000).toISOString()

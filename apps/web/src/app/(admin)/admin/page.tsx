@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { createServiceClient } from "@/lib/supabase/service"
+import { requirePlatformAdmin } from "@/lib/auth/platform-admin"
 
 export const metadata: Metadata = { title: "Admin Overview" }
 
@@ -12,6 +13,8 @@ function formatDate(iso: string) {
 }
 
 export default async function AdminOverviewPage() {
+  await requirePlatformAdmin()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
 

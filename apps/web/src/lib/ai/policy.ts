@@ -85,6 +85,42 @@ export function authorizeTool(agent: AgentRecord, toolName: string): Authorizati
 }
 
 /**
+ * Re-checks a queued action at the moment a human approves it. The proposal was
+ * authorised against the agent as it was then; if the agent has since been paused
+ * or the tool revoked, the approval must not run.
+ */
+export function authorizeApprovedAction(
+  agent: AgentRecord | null,
+  capability: string
+): Authorization {
+  if (!agent) {
+    return { decision: "deny", reason: "The agent that proposed this no longer exists" }
+  }
+  if (agent.status !== "active") {
+    return {
+      decision: "deny",
+      reason: `${agent.display_name} is ${agent.status}. Resume it before approving.`,
+    }
+  }
+
+  const def = AGENTS[agent.agent_key]
+  const stillGranted = (def?.tools ?? []).some(
+    (name) => TOOLS[name]?.capability === capability && agent.granted_tools.includes(name)
+  )
+  if (!stillGranted) {
+    return {
+      decision: "deny",
+      reason: `${capability} is no longer enabled for ${agent.display_name}`,
+    }
+  }
+  if (!getCapability(capability)) {
+    return { decision: "deny", reason: `Capability ${capability} is not registered` }
+  }
+
+  return { decision: "allow", reason: "Approved by an organisation admin" }
+}
+
+/**
  * Loads an org's agents, creating them at Level 1 on first use.
  * Every agent starts at Level 1 for a new organisation. No exceptions.
  */

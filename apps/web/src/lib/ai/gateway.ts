@@ -1,12 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk"
 import * as Sentry from "@sentry/nextjs"
 import { createServiceClient } from "@/lib/supabase/service"
-import { executeAction } from "@/lib/actions/gateway"
+import { executeAction, logBlocked } from "@/lib/actions/gateway"
 import { getCapability } from "@/lib/actions/registry"
 import { MODELS, estimateCostUsd } from "./models"
-import { AGENTS, type AgentKey } from "./agents"
+import { AGENTS, isAgentKey, type AgentKey } from "./agents"
 import { TOOLS, executeReadTool } from "./tools"
-import { authorizeTool, effectiveAutonomy, getAgent, type AgentRecord } from "./policy"
+import {
+  authorizeApprovedAction,
+  authorizeTool,
+  effectiveAutonomy,
+  getAgent,
+  type AgentRecord,
+} from "./policy"
 
 // The ONLY caller of the Anthropic SDK in this codebase. Enforced by the
 // no-restricted-imports rule in eslint.config.mjs.
@@ -405,12 +411,21 @@ export async function chat(params: {
   }
 }
 
-/** Runs a queued approval after a human accepts it. */
+export type ApprovalFailure = "not_found" | "decided" | "expired" | "blocked" | "failed"
+
+/**
+ * Runs a queued approval after an admin accepts it. The caller must already have
+ * checked the user may decide (canDecideApprovals).
+ *
+ * Order matters: re-authorise → claim → execute → record. The claim is a single
+ * conditional update, so an approve racing a reject (or a double-click) can only
+ * ever have one winner, and nothing runs until this request has won.
+ */
 export async function executeApproval(params: {
   approvalId: string
   orgId: string
   userId: string
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; error?: string; failure?: ApprovalFailure }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
 
@@ -421,11 +436,51 @@ export async function executeApproval(params: {
     .eq("org_id", params.orgId)
     .maybeSingle()
 
-  if (!approval) return { ok: false, error: "Approval not found" }
-  if (approval.status !== "pending") return { ok: false, error: "This request was already decided" }
-  if (new Date(approval.expires_at) < new Date()) {
-    await db.from("ai_approvals").update({ status: "expired" }).eq("id", approval.id)
-    return { ok: false, error: "This request expired" }
+  if (!approval) return { ok: false, error: "Approval not found", failure: "not_found" }
+  if (approval.status !== "pending") {
+    return { ok: false, error: "This request was already decided", failure: "decided" }
+  }
+
+  // The proposal was authorised against the agent as it was then. If it has since
+  // been paused or had the tool revoked, the approval must not run. It stays
+  // pending so the admin can resume the agent or reject it.
+  const agentKey = String(approval.agent_key)
+  const agent = isAgentKey(agentKey) ? await getAgent(params.orgId, agentKey) : null
+  const auth = authorizeApprovedAction(agent, approval.capability)
+  if (auth.decision !== "allow") {
+    await logBlocked(
+      params.orgId,
+      approval.capability,
+      approval.proposed_action,
+      "agent",
+      `${agentKey}:approval:${approval.id}`,
+      auth.reason
+    )
+    return { ok: false, error: auth.reason, failure: "blocked" }
+  }
+
+  const now = new Date().toISOString()
+  const { data: claimed } = await db
+    .from("ai_approvals")
+    .update({ status: "approved", decided_by: params.userId, decided_at: now })
+    .eq("id", approval.id)
+    .eq("org_id", params.orgId)
+    .eq("status", "pending")
+    .gt("expires_at", now)
+    .select("id")
+    .maybeSingle()
+
+  if (!claimed) {
+    // Lost the race, or it expired between the read and the claim.
+    if (new Date(approval.expires_at) <= new Date()) {
+      await db
+        .from("ai_approvals")
+        .update({ status: "expired" })
+        .eq("id", approval.id)
+        .eq("status", "pending")
+      return { ok: false, error: "This request expired", failure: "expired" }
+    }
+    return { ok: false, error: "This request was already decided", failure: "decided" }
   }
 
   const outcome = await executeAction({
@@ -433,19 +488,24 @@ export async function executeApproval(params: {
     capability: approval.capability,
     input: approval.proposed_action,
     actor: "agent",
-    actorRef: `${approval.agent_key}:approved-by:${params.userId}`,
+    actorRef: `${agentKey}:approved-by:${params.userId}`,
     idempotencyKey: `approval:${approval.id}`,
   })
 
+  const succeeded = outcome.status === "success" || outcome.status === "duplicate"
+  const error = succeeded ? null : (outcome.error ?? "The action could not be completed")
+
+  // The decision stands either way; the outcome is recorded beside it so a failed
+  // send is never shown as if it happened.
   await db
     .from("ai_approvals")
     .update({
-      status: "approved",
-      decided_by: params.userId,
-      decided_at: new Date().toISOString(),
+      executed_at: new Date().toISOString(),
+      execution_status: succeeded ? "succeeded" : "failed",
+      execution_error: error,
     })
     .eq("id", approval.id)
 
-  if (outcome.status === "success" || outcome.status === "duplicate") return { ok: true }
-  return { ok: false, error: outcome.error ?? "The action could not be completed" }
+  if (succeeded) return { ok: true }
+  return { ok: false, error: error!, failure: "failed" }
 }
