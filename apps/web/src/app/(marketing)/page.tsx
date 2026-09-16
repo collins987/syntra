@@ -57,11 +57,11 @@ export default function HomePage() {
         </div>
 
         <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight text-text-primary md:text-7xl">
-          YOUR BUSINESS.
+          BUILD THE
           <br />
-          <span className="text-cyan-400">RUNNING</span>
+          <span className="text-cyan-400">AUTONOMOUS</span>
           <br />
-          ITSELF.
+          BUSINESS.
         </h1>
 
         <p className="mt-6 max-w-xl text-lg text-text-secondary">
