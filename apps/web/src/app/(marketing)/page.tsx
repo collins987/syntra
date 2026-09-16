@@ -104,7 +104,7 @@ export default function HomePage() {
             Three services. Pick where it hurts most.
           </h2>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-3">
             {CORE.map((s) => (
               <Link
                 key={s.id}
@@ -113,58 +113,79 @@ export default function HomePage() {
               >
                 <h3 className="text-base font-semibold text-text-primary">{s.name}</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-text-muted">{s.summary}</p>
-                <p className="mt-5 text-sm font-semibold tabular-nums text-text-primary">
-                  ${s.priceUsd}
-                  <span className="text-xs font-normal text-text-disabled">/mo</span>
-                  <span className="ml-2 text-xs font-normal text-text-disabled">
+
+                <div className="mt-6 flex items-baseline gap-2 border-t border-border-subtle pt-4">
+                  <span className="text-lg font-semibold tabular-nums text-text-primary">
+                    ${s.priceUsd}
+                    <span className="text-xs font-normal text-text-disabled">/mo</span>
+                  </span>
+                  <span className="text-xs tabular-nums text-text-disabled">
                     KES {s.priceKes.toLocaleString()}
                   </span>
-                </p>
+                </div>
               </Link>
             ))}
           </div>
 
-          {/* Capabilities — included, never sold alone */}
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {CAPABILITIES.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-lg border border-border-subtle bg-bg-elevated/40 p-6"
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-400">
-                    In every plan
-                  </span>
+          {/* Capabilities — deliberately lighter than the service cards above:
+              they are part of every plan, not something you buy separately. */}
+          <div className="mt-14">
+            <div className="mb-5 flex items-center gap-4">
+              <span className="h-px flex-1 bg-border-subtle" />
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
+                Included in every plan
+              </span>
+              <span className="h-px flex-1 bg-border-subtle" />
+            </div>
+
+            <div className="grid divide-y divide-border-subtle rounded-lg border border-border-subtle bg-bg-elevated/40 md:grid-cols-2 md:divide-x md:divide-y-0">
+              {CAPABILITIES.map((c) => (
+                <div key={c.id} className="p-6">
+                  <h3 className="text-base font-semibold text-text-primary">{c.name}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.summary}</p>
                 </div>
-                <h3 className="text-base font-semibold text-text-primary">{c.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.summary}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* OS */}
-          <Link
-            href="/pricing"
-            className="group mt-4 flex flex-col gap-4 rounded-lg border border-cyan-500/40 bg-cyan-500/5 p-7 transition-all hover:border-cyan-500/70 hover:shadow-glow md:flex-row md:items-center md:justify-between"
-          >
-            <div>
-              <span className="mb-2 inline-block rounded-full bg-cyan-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg-base">
-                {OS.badge}
+          {/* OS — the destination tier */}
+          <div className="mt-14">
+            <div className="mb-5 flex items-center gap-4">
+              <span className="h-px flex-1 bg-border-subtle" />
+              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
+                Or take all three
               </span>
-              <h3 className="text-lg font-semibold text-text-primary">{OS.name}</h3>
-              <p className="mt-1 max-w-xl text-sm text-text-muted">{OS.summary}</p>
+              <span className="h-px flex-1 bg-border-subtle" />
             </div>
-            <div className="shrink-0 md:text-right">
-              <p className="text-2xl font-bold tabular-nums text-text-primary">
-                ${OS.priceUsd}
-                <span className="text-sm font-normal text-text-disabled">/mo</span>
-              </p>
-              <p className="text-xs text-text-disabled">KES {OS.priceKes.toLocaleString()}/mo</p>
-              <p className="mt-1 text-xs text-cyan-400">
-                ${CORE.reduce((n, s) => n + s.priceUsd, 0) - OS.priceUsd}/mo less than buying separately
-              </p>
-            </div>
-          </Link>
+
+            <Link
+              href="/pricing"
+              className="group flex flex-col gap-6 rounded-lg border border-cyan-500/40 bg-cyan-500/5 p-7 transition-all hover:border-cyan-500/70 hover:shadow-glow md:flex-row md:items-center md:justify-between md:gap-10"
+            >
+              <div className="max-w-xl">
+                <div className="mb-2 flex flex-wrap items-center gap-3">
+                  <h3 className="text-lg font-semibold text-text-primary">{OS.name}</h3>
+                  <span className="rounded-full bg-cyan-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg-base">
+                    {OS.badge}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-text-muted">{OS.summary}</p>
+              </div>
+
+              <div className="shrink-0 md:text-right">
+                <p className="text-3xl font-bold tabular-nums text-text-primary">
+                  ${OS.priceUsd}
+                  <span className="text-sm font-normal text-text-disabled">/mo</span>
+                </p>
+                <p className="text-xs tabular-nums text-text-disabled">
+                  KES {OS.priceKes.toLocaleString()}/mo
+                </p>
+                <p className="mt-2 text-xs font-medium text-cyan-400">
+                  Save ${CORE.reduce((n, s) => n + s.priceUsd, 0) - OS.priceUsd}/mo vs. buying separately
+                </p>
+              </div>
+            </Link>
+          </div>
         </div>
       </section>
 
