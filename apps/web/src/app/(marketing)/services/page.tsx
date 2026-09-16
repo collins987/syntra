@@ -75,8 +75,7 @@ export default function ServicesPage() {
             <span className="text-cyan-500">One operating system.</span>
           </h1>
           <p className="text-base text-text-muted">
-            Each service takes one area of repetitive work off your plate. Start with the one that
-            costs you the most time — or take all three in Syntra OS.
+            Each service takes one area of repetitive work off your plate. Or take all three.
           </p>
         </div>
       </section>
@@ -94,7 +93,6 @@ export default function ServicesPage() {
                   className="flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-7"
                 >
                   <h2 className="text-lg font-bold text-text-primary">{s.name}</h2>
-                  <p className="text-sm text-text-muted">{s.tagline}</p>
 
                   <div className="mt-4 border-y border-border-subtle py-3">
                     <div className="text-sm font-semibold text-text-primary">{p.kes}</div>
@@ -124,12 +122,9 @@ export default function ServicesPage() {
           <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-widest text-cyan-500">
             In every plan
           </p>
-          <h2 className="mb-3 text-center text-2xl font-bold text-text-primary">
+          <h2 className="mb-10 text-center text-2xl font-bold text-text-primary">
             What every service is built on
           </h2>
-          <p className="mx-auto mb-10 max-w-xl text-center text-sm text-text-muted">
-            These aren&apos;t add-ons or upsells. Whichever service you take, both come with it.
-          </p>
           <div className="grid gap-5 md:grid-cols-2">
             {CAPABILITIES.map((c) => (
               <div
@@ -137,8 +132,7 @@ export default function ServicesPage() {
                 className="rounded-xl border border-border-subtle bg-bg-elevated p-7"
               >
                 <h3 className="text-base font-bold text-text-primary">{c.name}</h3>
-                <p className="mt-0.5 text-sm text-cyan-400/80">{c.tagline}</p>
-                <p className="mt-3 text-sm leading-relaxed text-text-muted">{c.desc}</p>
+                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.summary}</p>
               </div>
             ))}
           </div>
@@ -155,7 +149,7 @@ export default function ServicesPage() {
                   {OS.badge}
                 </span>
                 <h2 className="text-xl font-bold text-text-primary">{OS.name}</h2>
-                <p className="text-sm text-text-muted">{OS.tagline}</p>
+                <p className="max-w-md text-sm text-text-muted">{OS.summary}</p>
               </div>
               <div className="shrink-0 text-right">
                 <div className="text-sm font-semibold text-text-primary">

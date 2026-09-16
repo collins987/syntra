@@ -5,7 +5,7 @@ import { PLANS } from "@/lib/pricing"
 const PRODUCTS = PLANS.map((p, i) => ({
   name: p.name,
   tag: String(i + 1).padStart(2, "0"),
-  desc: p.outcome,
+  desc: p.summary,
 }))
 
 const VALUES = [

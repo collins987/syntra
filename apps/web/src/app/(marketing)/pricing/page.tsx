@@ -209,8 +209,7 @@ function PricingContent() {
             <span className="text-cyan-400">AI advantage.</span>
           </h1>
           <p className="mt-4 text-lg text-text-muted">
-            Pick the part of your business you want handled first. Every plan includes your own
-            portal, live monitoring, and your AI team.
+            Pick what you want handled first. Every plan includes your portal and AI team.
           </p>
         </div>
 
@@ -287,7 +286,7 @@ function PricingContent() {
 
               <div className="mb-5">
                 <h2 className="text-lg font-bold text-text-primary">{plan.name}</h2>
-                <p className="mt-1 text-sm text-text-muted">{plan.tagline}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-text-muted">{plan.summary}</p>
               </div>
 
               {/* Price */}
@@ -312,8 +311,6 @@ function PricingContent() {
                   </div>
                 )}
               </div>
-
-              <p className="mb-5 text-sm leading-relaxed text-text-muted">{plan.outcome}</p>
 
               <ul className="mb-8 flex-1 space-y-2.5">
                 {plan.features.map((feat) => (
@@ -382,8 +379,7 @@ function PricingContent() {
             {CAPABILITIES.map((c) => (
               <div key={c.id}>
                 <h3 className="text-base font-bold text-text-primary">{c.name}</h3>
-                <p className="mt-0.5 text-sm text-cyan-400/80">{c.tagline}</p>
-                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.desc}</p>
+                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.summary}</p>
               </div>
             ))}
           </div>

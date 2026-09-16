@@ -17,7 +17,7 @@ const PLAN_ICONS: Record<PlanId, typeof Globe> = {
 const SERVICES = PLANS.map((p) => ({
   id: p.id,
   label: p.name,
-  desc: p.outcome,
+  desc: p.summary,
   icon: PLAN_ICONS[p.id],
 }))
 

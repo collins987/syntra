@@ -57,16 +57,15 @@ export default function HomePage() {
         </div>
 
         <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight text-text-primary md:text-7xl">
-          STOP DOING THE
+          YOUR BUSINESS.
           <br />
-          <span className="text-cyan-400">SAME WORK</span>
+          <span className="text-cyan-400">RUNNING</span>
           <br />
-          EVERY DAY.
+          ITSELF.
         </h1>
 
         <p className="mt-6 max-w-xl text-lg text-text-secondary">
-          SYNTRA runs the repetitive parts of your business — your website, your marketing, your
-          daily operations — so your team can focus on the work that actually grows it.
+          We run your website, marketing and daily operations, so your team can focus on growth.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
@@ -101,13 +100,9 @@ export default function HomePage() {
           <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-text-disabled">
             What we handle
           </p>
-          <h2 className="mb-3 text-center text-3xl font-bold text-text-primary">
+          <h2 className="mb-12 text-center text-3xl font-bold text-text-primary">
             Three services. Pick where it hurts most.
           </h2>
-          <p className="mx-auto mb-12 max-w-lg text-center text-sm text-text-muted">
-            Each one takes a whole area of repetitive work off your plate. Take one, or take all
-            three together.
-          </p>
 
           <div className="grid gap-4 md:grid-cols-3">
             {CORE.map((s) => (
@@ -117,8 +112,7 @@ export default function HomePage() {
                 className="group flex flex-col rounded-lg border border-border-subtle bg-bg-surface p-6 transition-all duration-200 hover:border-cyan-500/30 hover:shadow-glow"
               >
                 <h3 className="text-base font-semibold text-text-primary">{s.name}</h3>
-                <p className="mt-1 text-sm text-cyan-400/80">{s.tagline}</p>
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-text-muted">{s.outcome}</p>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-text-muted">{s.summary}</p>
                 <p className="mt-5 text-sm font-semibold tabular-nums text-text-primary">
                   ${s.priceUsd}
                   <span className="text-xs font-normal text-text-disabled">/mo</span>
@@ -143,7 +137,7 @@ export default function HomePage() {
                   </span>
                 </div>
                 <h3 className="text-base font-semibold text-text-primary">{c.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.desc}</p>
+                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.summary}</p>
               </div>
             ))}
           </div>
@@ -158,7 +152,7 @@ export default function HomePage() {
                 {OS.badge}
               </span>
               <h3 className="text-lg font-semibold text-text-primary">{OS.name}</h3>
-              <p className="mt-1 max-w-xl text-sm text-text-muted">{OS.outcome}</p>
+              <p className="mt-1 max-w-xl text-sm text-text-muted">{OS.summary}</p>
             </div>
             <div className="shrink-0 md:text-right">
               <p className="text-2xl font-bold tabular-nums text-text-primary">
@@ -180,8 +174,7 @@ export default function HomePage() {
           Find out what you could stop doing
         </h2>
         <p className="mt-4 text-text-muted">
-          Take the free audit. We&apos;ll look at how you work today and show you exactly which
-          tasks we&apos;d take off your plate first.
+          Take the free audit. We&apos;ll show you which tasks we&apos;d take off your plate first.
         </p>
         <Link
           href="/audit"
