@@ -1,6 +1,7 @@
 "use client"
 
 import * as Sentry from "@sentry/nextjs"
+import Link from "next/link"
 import { useEffect } from "react"
 
 export default function GlobalError({
@@ -34,12 +35,12 @@ export default function GlobalError({
             >
               Try again
             </button>
-            <a
+            <Link
               href="/"
               className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-white/70 transition hover:border-white/20 hover:text-white"
             >
               Go home
-            </a>
+            </Link>
           </div>
           {error.digest && (
             <p className="mt-6 font-mono text-[11px] text-white/20">

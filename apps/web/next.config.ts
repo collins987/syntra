@@ -14,8 +14,10 @@ export default withSentryConfig(nextConfig, {
   ...(process.env.SENTRY_AUTH_TOKEN ? { authToken: process.env.SENTRY_AUTH_TOKEN } : {}),
   silent: !process.env.CI,
   widenClientFileUpload: true,
+  hideSourceMaps: false,
   webpack: { treeshake: { removeDebugLogging: true } },
-  // Skip source map upload entirely when no auth token is configured,
-  // so local and preview builds don't fail on a missing Sentry setup.
-  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+    deleteSourcemapsAfterUpload: true,
+  },
 })

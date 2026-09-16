@@ -11,7 +11,7 @@ const NAV = [
   { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard, exact: false },
 ]
 
-export function AdminNav({ email: _ }: { email: string }) {
+export function AdminNav() {
   const pathname = usePathname()
 
   return (

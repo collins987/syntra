@@ -1,8 +1,9 @@
+import type { ReactNode } from "react"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminNav } from "./_components/admin-nav"
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -14,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-base">
-      <AdminNav email={user.email ?? ""} />
+      <AdminNav />
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-border-subtle px-6">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-warning-400">
