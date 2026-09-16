@@ -15,12 +15,6 @@ function authHeader() {
   return { Authorization: `Bearer ${secret()}` }
 }
 
-export const IS_KES_AMOUNTS: Record<string, number> = {
-  sites: parseInt(process.env.NEXT_PUBLIC_INTASEND_PRICE_SITES_KES ?? "38700"),
-  flow: parseInt(process.env.NEXT_PUBLIC_INTASEND_PRICE_FLOW_KES ?? "64700"),
-  os: parseInt(process.env.NEXT_PUBLIC_INTASEND_PRICE_OS_KES ?? "129700"),
-}
-
 export function normalizeKenyanPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "")
   if (digits.startsWith("254")) return digits

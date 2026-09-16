@@ -30,9 +30,10 @@ export default function TermsPage() {
               <h2 className="mb-3 text-base font-semibold text-text-primary">1. Services</h2>
               <p className="text-sm leading-relaxed">
                 SYNTRA provides AI-powered business automation services including website management
-                (Syntra Sites), workflow automation (Syntra Flow), marketing automation (Syntra Marketing),
-                lead management (Syntra Leads), custom AI agents (Syntra AI), and the full-suite package
-                (Syntra OS). The specific deliverables and scope for each plan are described on our{" "}
+                (Syntra Sites), workflow automation (Syntra Flow), marketing automation
+                (Syntra Marketing), and the full-suite package (Syntra OS). Lead management and AI
+                agents are included as capabilities within every plan rather than sold separately.
+                The specific deliverables and scope for each plan are described on our{" "}
                 <Link href="/services" className="text-cyan-500 hover:underline">Services</Link> and{" "}
                 <Link href="/pricing" className="text-cyan-500 hover:underline">Pricing</Link> pages.
               </p>

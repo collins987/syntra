@@ -1,38 +1,12 @@
 import Link from "next/link"
 import { MarketingShell } from "@/components/marketing/shell"
+import { PLANS } from "@/lib/pricing"
 
-const PRODUCTS = [
-  {
-    name: "Syntra Sites",
-    tag: "01",
-    desc: "Conversion-optimised websites built and managed for you — copy, SEO, and CRO included.",
-  },
-  {
-    name: "Syntra Flow",
-    tag: "02",
-    desc: "End-to-end workflow automation: connect your tools, eliminate manual tasks, run processes 24/7.",
-  },
-  {
-    name: "Syntra Marketing",
-    tag: "03",
-    desc: "AI-generated content, scheduling, and performance reporting across every channel.",
-  },
-  {
-    name: "Syntra Leads",
-    tag: "04",
-    desc: "Automated lead scoring, nurturing sequences, and CRM sync so no prospect falls through the cracks.",
-  },
-  {
-    name: "Syntra AI",
-    tag: "05",
-    desc: "Custom AI agents trained on your business — answering customers, triaging tickets, drafting docs.",
-  },
-  {
-    name: "Syntra OS",
-    tag: "06",
-    desc: "The full suite: every product unified in one dashboard with a dedicated implementation team.",
-  },
-]
+const PRODUCTS = PLANS.map((p, i) => ({
+  name: p.name,
+  tag: String(i + 1).padStart(2, "0"),
+  desc: p.outcome,
+}))
 
 const VALUES = [
   {

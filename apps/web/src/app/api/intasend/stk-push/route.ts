@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { isSTKPush, IS_KES_AMOUNTS, normalizeKenyanPhone } from "@/lib/intasend"
+import { isSTKPush, normalizeKenyanPhone } from "@/lib/intasend"
+import { KES_AMOUNTS, isPlanId } from "@/lib/pricing"
 
 export async function POST(req: NextRequest) {
   try {
     const { planId, phone } = (await req.json()) as { planId: string; phone: string }
 
-    if (!planId || !IS_KES_AMOUNTS[planId]) {
+    if (!planId || !isPlanId(planId)) {
       return NextResponse.json({ error: "Invalid planId" }, { status: 400 })
     }
     if (!phone || phone.trim().length < 9) {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const normalizedPhone = normalizeKenyanPhone(phone.trim())
     const apiRef = `syntra-${planId}-${user.id}-${Date.now()}`
-    const amount = IS_KES_AMOUNTS[planId]!
+    const amount = KES_AMOUNTS[planId]
 
     const result = await isSTKPush({
       amount,

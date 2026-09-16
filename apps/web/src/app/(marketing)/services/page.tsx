@@ -1,105 +1,52 @@
 import Link from "next/link"
 import { MarketingShell } from "@/components/marketing/shell"
+import { PLANS, CAPABILITIES, getPlan } from "@/lib/pricing"
 
-const SERVICES = [
-  {
-    id: "sites",
-    tag: "01",
-    name: "Syntra Sites",
-    tagline: "Your website, done for you.",
-    price: "KES 38,700 / mo",
-    priceUsd: "$297 / mo",
-    desc: "We design, build, host, and continuously optimise your business website. Conversion-focused copy, on-page SEO, monthly CRO updates — all included. No agency markup, no project manager ping-pong.",
+const DETAIL: Record<string, { desc: string; bullets: string[] }> = {
+  sites: {
+    desc: "We design, build, host, and continuously optimise your business website. Conversion-focused copy, on-page SEO, monthly improvements — all included. No agency markup, no project manager ping-pong.",
     bullets: [
       "Custom design in your brand colours",
       "Mobile-first, sub-2s load time",
       "Monthly copy and SEO updates",
-      "Cloudflare CDN — 99.9% uptime",
+      "Global CDN — 99.9% uptime",
       "Contact forms, live chat, lead capture",
     ],
   },
-  {
-    id: "flow",
-    tag: "02",
-    name: "Syntra Flow",
-    tagline: "Stop doing things manually.",
-    price: "KES 64,700 / mo",
-    priceUsd: "$497 / mo",
-    desc: "We map your current manual workflows and rebuild them as automated pipelines. CRM sync, invoice dispatch, order routing, approval chains, status emails — if a human does it on repeat, a machine can do it better.",
+  flow: {
+    desc: "We map the work your team currently does by hand and rebuild it to happen on its own. Customer records, invoices, order routing, approvals, status emails — if a person does it on repeat, it can run without them.",
     bullets: [
       "Discovery workshop to map your processes",
-      "Automation build in n8n or Zapier",
-      "Integration with 300+ tools (Gmail, Slack, Notion, Xero…)",
+      "Connects the tools you already use",
+      "Invoices, follow-ups and handoffs run themselves",
       "Error alerting + monthly health report",
       "Unlimited workflow runs",
     ],
   },
-  {
-    id: "marketing",
-    tag: "03",
-    name: "Syntra Marketing",
-    tagline: "Content and campaigns on autopilot.",
-    price: "Contact us",
-    priceUsd: "Custom",
-    desc: "AI-generated content calendars, social scheduling, email sequences, and campaign performance dashboards. We run it, you approve it — or set it to fully autonomous mode.",
+  marketing: {
+    desc: "Content calendars, social scheduling, email sequences, and campaign reporting — produced in your brand voice and published on schedule. You approve what goes out, or hand over the routine posts entirely.",
     bullets: [
-      "AI copywriting trained on your brand voice",
+      "Copywriting trained on your brand voice",
       "Social posts for LinkedIn, Instagram, X",
-      "Email newsletter + drip sequences",
+      "Email newsletter + follow-up sequences",
       "Monthly performance report",
       "A/B testing on subject lines and CTAs",
     ],
   },
-  {
-    id: "leads",
-    tag: "04",
-    name: "Syntra Leads",
-    tagline: "Never lose a lead again.",
-    price: "Contact us",
-    priceUsd: "Custom",
-    desc: "Automated lead scoring, follow-up sequences, and CRM enrichment. Every inbound lead is graded, routed to the right rep, and followed up within minutes — 24 hours a day.",
+  os: {
+    desc: "Every SYNTRA service unified in one dashboard, plus a dedicated implementation team that handles onboarding, integrations, and ongoing optimisation. The closest thing to a full tech team without hiring one.",
     bullets: [
-      "A/B/C/D scoring model out of the box",
-      "Auto-enroll in nurture sequence by score tier",
-      "CRM sync (HubSpot, Pipedrive, Salesforce)",
-      "WhatsApp + email follow-up templates",
-      "Pipeline and conversion reporting",
-    ],
-  },
-  {
-    id: "ai",
-    tag: "05",
-    name: "Syntra AI",
-    tagline: "Custom AI agents for your business.",
-    price: "Contact us",
-    priceUsd: "Custom",
-    desc: "We build and deploy AI agents trained on your knowledge base — answering customer questions, triaging support tickets, drafting proposals, summarising meeting notes. Works in WhatsApp, your website, email, or Slack.",
-    bullets: [
-      "Fine-tuned on your docs and FAQs",
-      "Deploys to WhatsApp, web, Slack",
-      "Escalation logic to human agents",
-      "Usage analytics and confidence scoring",
-      "Monthly model retraining",
-    ],
-  },
-  {
-    id: "os",
-    tag: "06",
-    name: "Syntra OS",
-    tagline: "The full suite, fully managed.",
-    price: "KES 129,700 / mo",
-    priceUsd: "$997 / mo",
-    desc: "Every SYNTRA product unified in one dashboard, plus a dedicated implementation team that handles onboarding, integrations, and ongoing optimisation. The closest thing to having a full tech team without hiring one.",
-    bullets: [
-      "All 5 products included",
+      "Sites, Flow and Marketing combined",
       "Dedicated implementation manager",
       "Weekly strategy calls",
       "Priority support (2-hour SLA)",
       "Custom integrations on request",
     ],
-    featured: true,
   },
-]
+}
+
+const CORE = PLANS.filter((p) => p.id !== "os")
+const OS = getPlan("os")!
 
 const PROCESS = [
   { step: "01", title: "Free audit", body: "We review your current tools, workflows, and goals in a 15-minute call. No pitch — just diagnosis." },
@@ -108,6 +55,10 @@ const PROCESS = [
   { step: "04", title: "Launch + handover", body: "Go live. We train your team, document everything, and stay on for 30 days to handle any edge cases." },
   { step: "05", title: "Ongoing management", body: "Monthly check-ins, updates, and optimisations included in your subscription. We run it so you don't have to." },
 ]
+
+function price(kesAmount: number, usd: number) {
+  return { kes: `KES ${kesAmount.toLocaleString()} / mo`, usd: `$${usd} / mo` }
+}
 
 export default function ServicesPage() {
   return (
@@ -119,71 +70,129 @@ export default function ServicesPage() {
             Services
           </div>
           <h1 className="mb-4 text-4xl font-bold tracking-tight text-text-primary md:text-5xl">
-            Six products.
+            Three services.
             <br />
             <span className="text-cyan-500">One operating system.</span>
           </h1>
           <p className="text-base text-text-muted">
-            Each SYNTRA product solves a specific bottleneck. Use them individually or combine them
-            in Syntra OS for total business automation.
+            Each service takes one area of repetitive work off your plate. Start with the one that
+            costs you the most time — or take all three in Syntra OS.
           </p>
         </div>
       </section>
 
-      {/* Services grid */}
+      {/* Core services */}
       <section className="border-b border-border-subtle px-6 py-16">
         <div className="mx-auto max-w-5xl">
-          <div className="grid gap-6 md:grid-cols-2">
-            {SERVICES.map((s) => (
-              <div
-                key={s.id}
-                className={`rounded-xl border p-7 ${
-                  s.featured
-                    ? "border-cyan-500/50 bg-cyan-500/5 md:col-span-2"
-                    : "border-border-subtle bg-bg-elevated"
-                }`}
-              >
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <div className="mb-1 text-[11px] font-bold tabular-nums text-cyan-500/60">{s.tag}</div>
-                    <h3 className="text-lg font-bold text-text-primary">{s.name}</h3>
-                    <p className="text-sm text-text-muted">{s.tagline}</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            {CORE.map((s) => {
+              const d = DETAIL[s.id]!
+              const p = price(s.priceKes, s.priceUsd)
+              return (
+                <div
+                  key={s.id}
+                  className="flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-7"
+                >
+                  <h2 className="text-lg font-bold text-text-primary">{s.name}</h2>
+                  <p className="text-sm text-text-muted">{s.tagline}</p>
+
+                  <div className="mt-4 border-y border-border-subtle py-3">
+                    <div className="text-sm font-semibold text-text-primary">{p.kes}</div>
+                    <div className="text-xs text-text-disabled">{p.usd}</div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-semibold text-text-primary">{s.price}</div>
-                    <div className="text-xs text-text-disabled">{s.priceUsd}</div>
-                  </div>
+
+                  <p className="mt-4 text-sm leading-relaxed text-text-muted">{d.desc}</p>
+
+                  <ul className="mt-5 grid flex-1 gap-2">
+                    {d.bullets.map((b) => (
+                      <li key={b} className="flex items-start gap-2 text-xs text-text-muted">
+                        <span className="mt-0.5 shrink-0 text-cyan-500">✓</span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
 
-                <p className="mb-5 text-sm leading-relaxed text-text-muted">{s.desc}</p>
-
-                <ul className="grid gap-2 sm:grid-cols-2">
-                  {s.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-xs text-text-muted">
-                      <span className="mt-0.5 shrink-0 text-cyan-500">✓</span>
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-
-                {s.featured && (
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Link
-                      href="/pricing"
-                      className="flex h-9 items-center rounded-md bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
-                    >
-                      Get started →
-                    </Link>
-                    <Link
-                      href="/contact"
-                      className="flex h-9 items-center rounded-md border border-border-subtle px-5 text-sm text-text-muted hover:text-text-primary transition-colors"
-                    >
-                      Talk to us first
-                    </Link>
-                  </div>
-                )}
+      {/* Capabilities — in every plan, never sold alone */}
+      <section className="border-b border-border-subtle px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-widest text-cyan-500">
+            In every plan
+          </p>
+          <h2 className="mb-3 text-center text-2xl font-bold text-text-primary">
+            What every service is built on
+          </h2>
+          <p className="mx-auto mb-10 max-w-xl text-center text-sm text-text-muted">
+            These aren&apos;t add-ons or upsells. Whichever service you take, both come with it.
+          </p>
+          <div className="grid gap-5 md:grid-cols-2">
+            {CAPABILITIES.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-xl border border-border-subtle bg-bg-elevated p-7"
+              >
+                <h3 className="text-base font-bold text-text-primary">{c.name}</h3>
+                <p className="mt-0.5 text-sm text-cyan-400/80">{c.tagline}</p>
+                <p className="mt-3 text-sm leading-relaxed text-text-muted">{c.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Syntra OS */}
+      <section className="border-b border-border-subtle px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-xl border border-cyan-500/50 bg-cyan-500/5 p-8">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <span className="mb-2 inline-block rounded-full bg-cyan-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg-base">
+                  {OS.badge}
+                </span>
+                <h2 className="text-xl font-bold text-text-primary">{OS.name}</h2>
+                <p className="text-sm text-text-muted">{OS.tagline}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-sm font-semibold text-text-primary">
+                  KES {OS.priceKes.toLocaleString()} / mo
+                </div>
+                <div className="text-xs text-text-disabled">${OS.priceUsd} / mo</div>
+                <div className="mt-1 text-[11px] text-cyan-400">
+                  Saves ${CORE.reduce((n, s) => n + s.priceUsd, 0) - OS.priceUsd}/mo vs. separately
+                </div>
+              </div>
+            </div>
+
+            <p className="mb-5 text-sm leading-relaxed text-text-muted">{DETAIL["os"]!.desc}</p>
+
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {DETAIL["os"]!.bullets.map((b) => (
+                <li key={b} className="flex items-start gap-2 text-xs text-text-muted">
+                  <span className="mt-0.5 shrink-0 text-cyan-500">✓</span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/pricing"
+                className="flex h-9 items-center rounded-md bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
+              >
+                Get started →
+              </Link>
+              <Link
+                href="/contact"
+                className="flex h-9 items-center rounded-md border border-border-subtle px-5 text-sm text-text-muted hover:text-text-primary transition-colors"
+              >
+                Talk to us first
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -224,7 +233,7 @@ export default function ServicesPage() {
           <h2 className="mb-4 text-2xl font-bold text-text-primary">Not sure where to start?</h2>
           <p className="mb-8 text-sm text-text-muted">
             Take the free audit. We&apos;ll look at your current setup and tell you exactly which
-            product will have the biggest impact for your business.
+            service will have the biggest impact for your business.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link

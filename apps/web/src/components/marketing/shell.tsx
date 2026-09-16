@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
+import { PLANS } from "@/lib/pricing"
 
 const NAV_LINKS = [
   { href: "/services", label: "Services" },
@@ -57,9 +58,9 @@ export function MarketingFooter() {
               Products
             </p>
             <ul className="space-y-2 text-sm text-text-muted">
-              {["Syntra Sites", "Syntra Flow", "Syntra Marketing", "Syntra Leads", "Syntra AI", "Syntra OS"].map((p) => (
-                <li key={p}>
-                  <Link href="/services" className="hover:text-text-primary transition-colors">{p}</Link>
+              {PLANS.map((p) => (
+                <li key={p.id}>
+                  <Link href="/services" className="hover:text-text-primary transition-colors">{p.name}</Link>
                 </li>
               ))}
             </ul>

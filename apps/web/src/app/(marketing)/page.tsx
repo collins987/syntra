@@ -1,12 +1,23 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
+import { PLANS, CAPABILITIES, getPlan } from "@/lib/pricing"
 
 export const metadata: Metadata = {
   title: "SYNTRA | Build. Automate. Scale.",
   description:
-    "AI-powered websites, workflows, marketing and business automation systems that work while you focus on what matters.",
+    "SYNTRA runs the repetitive parts of your business. We build and manage your website, marketing and daily operations so your team can focus on growth.",
 }
+
+const CORE = PLANS.filter((p) => p.id !== "os")
+const OS = getPlan("os")!
+
+// What we commit to — not traction claims.
+const COMMITMENTS = [
+  { value: "48 hrs", label: "From signup to live site" },
+  { value: "24/7", label: "Your systems keep running" },
+  { value: "Monthly", label: "Improvements, not just upkeep" },
+]
 
 export default function HomePage() {
   return (
@@ -42,19 +53,20 @@ export default function HomePage() {
       <section className="relative z-10 flex flex-col items-center justify-center px-6 py-32 text-center">
         <div className="mb-4 flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
-          <span className="text-xs font-medium text-cyan-400">Autonomous systems running</span>
+          <span className="text-xs font-medium text-cyan-400">Systems running</span>
         </div>
 
         <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight text-text-primary md:text-7xl">
-          BUILD THE
+          STOP DOING THE
           <br />
-          <span className="text-cyan-400">AUTONOMOUS</span>
+          <span className="text-cyan-400">SAME WORK</span>
           <br />
-          BUSINESS.
+          EVERY DAY.
         </h1>
 
         <p className="mt-6 max-w-xl text-lg text-text-secondary">
-          AI-powered websites, workflows, marketing and business systems that operate autonomously — so you can focus on growth.
+          SYNTRA runs the repetitive parts of your business — your website, your marketing, your
+          daily operations — so your team can focus on the work that actually grows it.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
@@ -62,95 +74,114 @@ export default function HomePage() {
             href="/audit"
             className="flex h-11 items-center rounded-lg bg-cyan-500 px-8 text-base font-semibold text-bg-base shadow-glow hover:bg-cyan-400 transition-colors"
           >
-            Build your system →
+            Get your free audit →
           </Link>
           <Link
             href="/services"
             className="flex h-11 items-center rounded-lg border border-border px-8 text-base text-text-secondary hover:border-border-strong hover:text-text-primary transition-colors"
           >
-            See what we build
+            See what we handle
           </Link>
         </div>
 
-        {/* Stats */}
-        <div className="mt-20 grid grid-cols-3 gap-12 border-t border-border-subtle pt-12">
-          {[
-            { value: "42+", label: "Workflows automated" },
-            { value: "98.7%", label: "Automation uptime" },
-            { value: "3×", label: "Average ROI" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-2xl font-semibold text-text-primary">{stat.value}</p>
-              <p className="mt-1 text-sm text-text-muted">{stat.label}</p>
+        {/* Commitments */}
+        <div className="mt-20 grid grid-cols-1 gap-12 border-t border-border-subtle pt-12 sm:grid-cols-3">
+          {COMMITMENTS.map((c) => (
+            <div key={c.label} className="text-center">
+              <p className="text-2xl font-semibold text-text-primary">{c.value}</p>
+              <p className="mt-1 text-sm text-text-muted">{c.label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Products */}
+      {/* Core services */}
       <section className="relative z-10 border-t border-border-subtle px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-text-disabled">
-            Products
+            What we handle
           </p>
-          <h2 className="mb-12 text-center text-3xl font-bold text-text-primary">
-            Everything your business needs to run autonomously
+          <h2 className="mb-3 text-center text-3xl font-bold text-text-primary">
+            Three services. Pick where it hurts most.
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                name: "Syntra Sites",
-                desc: "AI builds, deploys and maintains your website. Input your business — get a production site.",
-                tag: "AI Website Builder",
-              },
-              {
-                name: "Syntra Flow",
-                desc: "Connect your tools, automate your workflows. No code required.",
-                tag: "Workflow Automation",
-              },
-              {
-                name: "Syntra Marketing",
-                desc: "Autonomous content, email campaigns and social media — on autopilot.",
-                tag: "Marketing Automation",
-              },
-              {
-                name: "Syntra Leads",
-                desc: "AI qualifies every lead, scores them, and starts personalised follow-up instantly.",
-                tag: "Lead Generation",
-              },
-              {
-                name: "Syntra AI",
-                desc: "A system of intelligent agents working on your business 24/7.",
-                tag: "AI Agents",
-              },
-              {
-                name: "Syntra OS",
-                desc: "The complete business operating system. Custom automation + dedicated support.",
-                tag: "Full Platform",
-              },
-            ].map((product) => (
-              <div
-                key={product.name}
-                className="group rounded-lg border border-border-subtle bg-bg-surface p-5 transition-all duration-200 hover:border-cyan-500/30 hover:shadow-glow"
+          <p className="mx-auto mb-12 max-w-lg text-center text-sm text-text-muted">
+            Each one takes a whole area of repetitive work off your plate. Take one, or take all
+            three together.
+          </p>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {CORE.map((s) => (
+              <Link
+                key={s.id}
+                href="/services"
+                className="group flex flex-col rounded-lg border border-border-subtle bg-bg-surface p-6 transition-all duration-200 hover:border-cyan-500/30 hover:shadow-glow"
               >
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-cyan-400">
-                  {product.tag}
-                </span>
-                <h3 className="mt-2 text-base font-semibold text-text-primary">{product.name}</h3>
-                <p className="mt-1.5 text-sm text-text-muted">{product.desc}</p>
+                <h3 className="text-base font-semibold text-text-primary">{s.name}</h3>
+                <p className="mt-1 text-sm text-cyan-400/80">{s.tagline}</p>
+                <p className="mt-3 flex-1 text-sm leading-relaxed text-text-muted">{s.outcome}</p>
+                <p className="mt-5 text-sm font-semibold tabular-nums text-text-primary">
+                  ${s.priceUsd}
+                  <span className="text-xs font-normal text-text-disabled">/mo</span>
+                  <span className="ml-2 text-xs font-normal text-text-disabled">
+                    KES {s.priceKes.toLocaleString()}
+                  </span>
+                </p>
+              </Link>
+            ))}
+          </div>
+
+          {/* Capabilities — included, never sold alone */}
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {CAPABILITIES.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-lg border border-border-subtle bg-bg-elevated/40 p-6"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-400">
+                    In every plan
+                  </span>
+                </div>
+                <h3 className="text-base font-semibold text-text-primary">{c.name}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.desc}</p>
               </div>
             ))}
           </div>
+
+          {/* OS */}
+          <Link
+            href="/pricing"
+            className="group mt-4 flex flex-col gap-4 rounded-lg border border-cyan-500/40 bg-cyan-500/5 p-7 transition-all hover:border-cyan-500/70 hover:shadow-glow md:flex-row md:items-center md:justify-between"
+          >
+            <div>
+              <span className="mb-2 inline-block rounded-full bg-cyan-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-bg-base">
+                {OS.badge}
+              </span>
+              <h3 className="text-lg font-semibold text-text-primary">{OS.name}</h3>
+              <p className="mt-1 max-w-xl text-sm text-text-muted">{OS.outcome}</p>
+            </div>
+            <div className="shrink-0 md:text-right">
+              <p className="text-2xl font-bold tabular-nums text-text-primary">
+                ${OS.priceUsd}
+                <span className="text-sm font-normal text-text-disabled">/mo</span>
+              </p>
+              <p className="text-xs text-text-disabled">KES {OS.priceKes.toLocaleString()}/mo</p>
+              <p className="mt-1 text-xs text-cyan-400">
+                ${CORE.reduce((n, s) => n + s.priceUsd, 0) - OS.priceUsd}/mo less than buying separately
+              </p>
+            </div>
+          </Link>
         </div>
       </section>
 
       {/* CTA */}
       <section className="relative z-10 border-t border-border-subtle px-6 py-24 text-center">
         <h2 className="text-3xl font-bold text-text-primary">
-          Ready to build your autonomous system?
+          Find out what you could stop doing
         </h2>
         <p className="mt-4 text-text-muted">
-          Get a free automation audit — we&apos;ll show you exactly what we&apos;d automate in your business.
+          Take the free audit. We&apos;ll look at how you work today and show you exactly which
+          tasks we&apos;d take off your plate first.
         </p>
         <Link
           href="/audit"

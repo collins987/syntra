@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { isCheckStatus, IS_KES_AMOUNTS } from "@/lib/intasend"
+import { isCheckStatus } from "@/lib/intasend"
+import { KES_AMOUNTS, isPlanId } from "@/lib/pricing"
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +17,10 @@ export async function POST(req: NextRequest) {
         { error: "apiRef, invoiceId, orgId, and planId are required" },
         { status: 400 }
       )
+    }
+
+    if (!isPlanId(planId)) {
+      return NextResponse.json({ error: "Invalid planId" }, { status: 400 })
     }
 
     const supabase = await createClient()
@@ -38,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Guard: ensure the paid amount is >= expected plan price (allow 1% tolerance)
-    const expectedKes = IS_KES_AMOUNTS[planId] ?? 0
+    const expectedKes = KES_AMOUNTS[planId] ?? 0
     const paidAmount = parseFloat(result.invoice.net_amount ?? result.invoice.value)
     if (expectedKes > 0 && paidAmount < expectedKes * 0.99) {
       return NextResponse.json({ error: "Payment amount mismatch" }, { status: 400 })

@@ -7,6 +7,7 @@ import {
   Trash2, UserPlus, Loader2, CheckCircle2, AlertCircle,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { PLANS } from "@/lib/pricing"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,9 +58,9 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "org", label: "Organization", icon: <Building2 className="h-4 w-4" /> },
 ]
 
-const PLAN_LABELS: Record<string, string> = {
-  sites: "Syntra Sites", flow: "Syntra Flow", ai: "Syntra AI", os: "Syntra OS",
-}
+const PLAN_LABELS: Record<string, string> = Object.fromEntries(
+  PLANS.map((p) => [p.id, p.name])
+)
 
 const ROLE_LABELS: Record<string, string> = {
   CLIENT_ADMIN: "Admin", CLIENT_USER: "Member",

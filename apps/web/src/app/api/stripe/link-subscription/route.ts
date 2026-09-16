@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { createClient } from "@/lib/supabase/server"
+import { planFromStripePriceId } from "@/lib/pricing"
 
 interface StripeSubShape {
   id: string
@@ -42,13 +43,15 @@ export async function POST(req: NextRequest) {
     const sub = session.subscription as unknown as StripeSubShape
     const priceId = sub.items.data[0]?.price?.id ?? ""
 
-    let plan = "sites"
-    const flowId = process.env.NEXT_PUBLIC_STRIPE_PRICE_FLOW ?? ""
-    const osId = process.env.NEXT_PUBLIC_STRIPE_PRICE_OS ?? ""
-    if (flowId && priceId === flowId) plan = "flow"
-    else if (osId && priceId === osId) plan = "os"
-    else if (priceId.toLowerCase().includes("flow")) plan = "flow"
-    else if (priceId.toLowerCase().includes("os")) plan = "os"
+    // Never guess the plan — recording the wrong tier mis-prices the account and
+    // under-delivers the service the customer actually paid for.
+    const plan = planFromStripePriceId(priceId)
+    if (!plan) {
+      return NextResponse.json(
+        { error: `Unrecognised Stripe price ${priceId}. Check NEXT_PUBLIC_STRIPE_PRICE_* env vars.` },
+        { status: 400 }
+      )
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = (await (supabase as any).from("subscriptions").upsert(

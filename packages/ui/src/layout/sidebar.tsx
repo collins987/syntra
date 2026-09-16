@@ -18,6 +18,8 @@ import {
   Plug,
   Activity,
   Settings,
+  ShieldCheck,
+  Gauge,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -37,7 +39,10 @@ interface NavGroup {
 const navigation: NavGroup[] = [
   {
     group: "Overview",
-    items: [{ label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard }],
+    items: [
+      { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
+      { label: "Approvals", href: "/portal/approvals", icon: ShieldCheck },
+    ],
   },
   {
     group: "Workspace",
@@ -52,6 +57,7 @@ const navigation: NavGroup[] = [
     group: "Intelligence",
     items: [
       { label: "AI Center", href: "/portal/ai", icon: Cpu },
+      { label: "AI Usage", href: "/portal/ai-usage", icon: Gauge },
       { label: "Analytics", href: "/portal/analytics", icon: BarChart3 },
     ],
   },

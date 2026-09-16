@@ -5,14 +5,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
-import { PLANS } from "@/lib/pricing"
+import { PLANS, CAPABILITIES } from "@/lib/pricing"
 import { Check, CreditCard, Smartphone, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
-
-const KES_PRICES: Record<string, number> = {
-  sites: parseInt(process.env.NEXT_PUBLIC_INTASEND_PRICE_SITES_KES ?? "38700"),
-  flow: parseInt(process.env.NEXT_PUBLIC_INTASEND_PRICE_FLOW_KES ?? "64700"),
-  os: parseInt(process.env.NEXT_PUBLIC_INTASEND_PRICE_OS_KES ?? "129700"),
-}
 
 type PayMethod = "card" | "mpesa"
 type MpesaStep = "idle" | "phone" | "pending" | "polling" | "success" | "failed"
@@ -215,7 +209,8 @@ function PricingContent() {
             <span className="text-cyan-400">AI advantage.</span>
           </h1>
           <p className="mt-4 text-lg text-text-muted">
-            Every plan includes a dedicated client portal, real-time monitoring, and SYNTRA&apos;s autonomous AI layer.
+            Pick the part of your business you want handled first. Every plan includes your own
+            portal, live monitoring, and your AI team.
           </p>
         </div>
 
@@ -264,54 +259,63 @@ function PricingContent() {
         )}
 
         {/* Plan cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
               className={[
-                "relative flex flex-col rounded-2xl border p-8 transition-all",
-                plan.popular
+                "relative flex flex-col rounded-2xl border p-6 transition-all",
+                plan.highlight
                   ? "border-cyan-500/50 bg-cyan-500/[0.04] shadow-[0_0_40px_rgba(0,229,255,0.07)]"
                   : "border-border-subtle bg-bg-elevated hover:border-border",
               ].join(" ")}
             >
-              {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="rounded-full bg-cyan-500 px-4 py-1 text-[11px] font-bold tracking-wider text-bg-base">
-                    MOST POPULAR
+              {plan.badge && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                  <span
+                    className={[
+                      "rounded-full px-4 py-1 text-[11px] font-bold uppercase tracking-wider",
+                      plan.highlight
+                        ? "bg-cyan-500 text-bg-base"
+                        : "border border-border bg-bg-surface text-text-muted",
+                    ].join(" ")}
+                  >
+                    {plan.badge}
                   </span>
                 </div>
               )}
 
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-text-primary">{plan.name}</h2>
+              <div className="mb-5">
+                <h2 className="text-lg font-bold text-text-primary">{plan.name}</h2>
                 <p className="mt-1 text-sm text-text-muted">{plan.tagline}</p>
               </div>
 
               {/* Price */}
-              <div className="mb-8">
+              <div className="mb-6">
                 {payMethod === "card" ? (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold tabular-nums text-text-primary">
-                      ${plan.price}
+                    <span className="text-4xl font-bold tabular-nums text-text-primary">
+                      ${plan.priceUsd}
                     </span>
                     <span className="text-sm text-text-disabled">/mo</span>
                   </div>
                 ) : (
                   <div>
-                    <div className="flex items-baseline gap-1">
+                    <div className="flex flex-wrap items-baseline gap-1">
                       <span className="text-xs font-medium text-text-disabled">KES</span>
-                      <span className="text-5xl font-bold tabular-nums text-text-primary">
-                        {(KES_PRICES[plan.id] ?? 0).toLocaleString()}
+                      <span className="text-3xl font-bold tabular-nums text-text-primary">
+                        {plan.priceKes.toLocaleString()}
                       </span>
                       <span className="text-sm text-text-disabled">/mo</span>
                     </div>
-                    <p className="mt-1 text-xs text-text-disabled">≈ ${plan.price} USD</p>
+                    <p className="mt-1 text-xs text-text-disabled">≈ ${plan.priceUsd} USD</p>
                   </div>
                 )}
               </div>
 
-              <ul className="mb-8 flex-1 space-y-3">
+              <p className="mb-5 text-sm leading-relaxed text-text-muted">{plan.outcome}</p>
+
+              <ul className="mb-8 flex-1 space-y-2.5">
                 {plan.features.map((feat) => (
                   <li key={feat} className="flex items-start gap-2.5 text-sm text-text-muted">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
@@ -327,7 +331,7 @@ function PricingContent() {
                   disabled={stripeLoading === plan.id}
                   className={[
                     "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all",
-                    plan.popular
+                    plan.highlight
                       ? "bg-cyan-500 text-bg-base shadow-glow-sm hover:bg-cyan-400 disabled:opacity-60"
                       : "border border-border bg-bg-surface text-text-primary hover:border-border-strong hover:bg-bg-elevated disabled:opacity-60",
                   ].join(" ")}
@@ -345,7 +349,7 @@ function PricingContent() {
                   disabled={mpesaOverlayPlanId !== null}
                   className={[
                     "flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all",
-                    plan.popular
+                    plan.highlight
                       ? "bg-cyan-500 text-bg-base shadow-glow-sm hover:bg-cyan-400 disabled:opacity-40"
                       : "border border-border bg-bg-surface text-text-primary hover:border-border-strong hover:bg-bg-elevated disabled:opacity-40",
                   ].join(" ")}
@@ -362,11 +366,27 @@ function PricingContent() {
                   setMpesa={setMpesa}
                   submitPhone={submitMpesaPhone}
                   onCancel={resetMpesa}
-                  popular={plan.popular === true}
+                  highlight={plan.highlight === true}
                 />
               )}
             </div>
           ))}
+        </div>
+
+        {/* Included in every plan — capabilities are never sold separately */}
+        <div className="mt-16 rounded-2xl border border-border-subtle bg-bg-elevated/50 p-8">
+          <p className="mb-6 text-center text-[11px] font-semibold uppercase tracking-widest text-cyan-500">
+            Included in every plan
+          </p>
+          <div className="grid gap-6 md:grid-cols-2">
+            {CAPABILITIES.map((c) => (
+              <div key={c.id}>
+                <h3 className="text-base font-bold text-text-primary">{c.name}</h3>
+                <p className="mt-0.5 text-sm text-cyan-400/80">{c.tagline}</p>
+                <p className="mt-2 text-sm leading-relaxed text-text-muted">{c.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mt-16 text-center space-y-2">
@@ -394,13 +414,13 @@ function MpesaFlow({
   setMpesa,
   submitPhone,
   onCancel,
-  popular,
+  highlight,
 }: {
   mpesa: MpesaState
   setMpesa: React.Dispatch<React.SetStateAction<MpesaState>>
   submitPhone: () => void | Promise<void>
   onCancel: () => void
-  popular: boolean
+  highlight: boolean
 }) {
   if (mpesa.step === "phone") {
     return (
@@ -428,7 +448,7 @@ function MpesaFlow({
             onClick={submitPhone}
             className={[
               "flex flex-1 h-10 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all",
-              popular
+              highlight
                 ? "bg-cyan-500 text-bg-base shadow-glow-sm hover:bg-cyan-400"
                 : "border border-border bg-bg-elevated text-text-primary hover:border-border-strong",
             ].join(" ")}

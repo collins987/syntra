@@ -60,9 +60,9 @@ export interface DashboardData {
  * come from ai_requests. function_name is matched against these prefixes.
  */
 const AGENTS = [
-  { id: "ava", initial: "A", name: "Ava", role: "Content & SEO", match: ["content", "seo", "marketing", "copy", "blog"] },
-  { id: "max", initial: "M", name: "Max", role: "Sales & Leads", match: ["lead", "sales", "outreach", "qualify", "crm"] },
-  { id: "leo", initial: "L", name: "Leo", role: "Operations", match: ["ops", "workflow", "automation", "support", "triage"] },
+  { id: "ava", initial: "A", name: "Ava", role: "Website & Content", match: ["ava", "content", "seo", "site"] },
+  { id: "max", initial: "M", name: "Max", role: "Workflow & Operations", match: ["max", "workflow", "ops", "automation"] },
+  { id: "leo", initial: "L", name: "Leo", role: "Business Intelligence", match: ["leo", "data", "report", "forecast"] },
 ] as const
 
 function startOfDay(d: Date): Date {

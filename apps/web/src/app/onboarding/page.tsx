@@ -2,36 +2,24 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Globe, Zap, Bot, Layers, ChevronRight, Check } from "lucide-react"
+import { Globe, Zap, Megaphone, Layers, ChevronRight, Check } from "lucide-react"
+import { PLANS, type PlanId } from "@/lib/pricing"
 
 const STEPS = ["Business", "Service", "Goals", "Launch"]
 
-const SERVICES = [
-  {
-    id: "sites",
-    label: "Syntra Sites",
-    desc: "AI-generated website with continuous SEO optimization",
-    icon: Globe,
-  },
-  {
-    id: "flow",
-    label: "Syntra Flow",
-    desc: "Autonomous workflows, CRM sync, and email sequences",
-    icon: Zap,
-  },
-  {
-    id: "ai",
-    label: "Syntra AI",
-    desc: "Dedicated AI agents (Ava, Max, Leo) for your business",
-    icon: Bot,
-  },
-  {
-    id: "os",
-    label: "Syntra OS",
-    desc: "Complete AI operating system — websites + flows + agents",
-    icon: Layers,
-  },
-]
+const PLAN_ICONS: Record<PlanId, typeof Globe> = {
+  sites: Globe,
+  flow: Zap,
+  marketing: Megaphone,
+  os: Layers,
+}
+
+const SERVICES = PLANS.map((p) => ({
+  id: p.id,
+  label: p.name,
+  desc: p.outcome,
+  icon: PLAN_ICONS[p.id],
+}))
 
 const INDUSTRIES = [
   "E-commerce", "SaaS", "Agency", "Real Estate",

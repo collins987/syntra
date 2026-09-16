@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { sendEmail, APP_URL } from "@/lib/resend"
 import { WelcomeEmail } from "@/emails/welcome"
+import { PLANS } from "@/lib/pricing"
 
-const PLAN_LABELS: Record<string, string> = {
-  sites: "Syntra Sites",
-  flow: "Syntra Flow",
-  ai: "Syntra AI",
-  os: "Syntra OS",
-}
+const PLAN_LABELS: Record<string, string> = Object.fromEntries(
+  PLANS.map((p) => [p.id, p.name])
+)
 
 interface OnboardingPayload {
   orgName: string
