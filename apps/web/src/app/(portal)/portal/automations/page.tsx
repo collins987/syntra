@@ -3,6 +3,7 @@ import type { Automation } from "@syntra/db"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { Zap, Play, Pause, AlertCircle, FileEdit } from "lucide-react"
+import { SyncButton } from "./_components/sync-button"
 
 export const metadata: Metadata = { title: "Automations" }
 
@@ -83,10 +84,13 @@ export default async function AutomationsPage() {
               )}
             </p>
           </div>
-          <button className="flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors">
-            <Zap className="h-3.5 w-3.5" />
-            New automation
-          </button>
+          <div className="flex items-center gap-3">
+            <SyncButton />
+            <button className="flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors">
+              <Zap className="h-3.5 w-3.5" />
+              New automation
+            </button>
+          </div>
         </div>
       </div>
 
