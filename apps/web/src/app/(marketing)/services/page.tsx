@@ -1,6 +1,14 @@
 import Link from "next/link"
+import { Globe, Zap, Megaphone } from "lucide-react"
 import { MarketingShell } from "@/components/marketing/shell"
-import { PLANS, CAPABILITIES, getPlan } from "@/lib/pricing"
+import { PLANS, CAPABILITIES, getPlan, type PlanId } from "@/lib/pricing"
+
+const PLAN_ICONS: Record<PlanId, typeof Globe> = {
+  sites: Globe,
+  flow: Zap,
+  marketing: Megaphone,
+  os: Globe,
+}
 
 const DETAIL: Record<string, { desc: string; bullets: string[] }> = {
   sites: {
@@ -87,11 +95,21 @@ export default function ServicesPage() {
             {CORE.map((s) => {
               const d = DETAIL[s.id]!
               const p = price(s.priceKes, s.priceUsd)
+              const Icon = PLAN_ICONS[s.id]
               return (
                 <div
                   key={s.id}
                   className="flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-7"
                 >
+                  <div className="mb-5 flex items-center justify-between">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/5">
+                      <Icon className="h-5 w-5 text-cyan-500" />
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-disabled">
+                      {s.category}
+                    </span>
+                  </div>
+
                   <h2 className="text-lg font-bold text-text-primary">{s.name}</h2>
 
                   <div className="mt-4 border-y border-border-subtle py-3">

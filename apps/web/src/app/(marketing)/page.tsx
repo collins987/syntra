@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
-import { PLANS, CAPABILITIES, getPlan } from "@/lib/pricing"
+import { Globe, Zap, Megaphone, ArrowRight } from "lucide-react"
+import { PLANS, CAPABILITIES, getPlan, type PlanId } from "@/lib/pricing"
 
 export const metadata: Metadata = {
   title: "SYNTRA | Build. Automate. Scale.",
@@ -11,6 +12,14 @@ export const metadata: Metadata = {
 
 const CORE = PLANS.filter((p) => p.id !== "os")
 const OS = getPlan("os")!
+
+// Same icon means the same thing here as it does in the portal sidebar.
+const PLAN_ICONS: Record<PlanId, typeof Globe> = {
+  sites: Globe,
+  flow: Zap,
+  marketing: Megaphone,
+  os: Globe,
+}
 
 // What we commit to — not traction claims.
 const COMMITMENTS = [
@@ -105,26 +114,42 @@ export default function HomePage() {
           </h2>
 
           <div className="grid gap-5 md:grid-cols-3">
-            {CORE.map((s) => (
-              <Link
-                key={s.id}
-                href="/services"
-                className="group flex flex-col rounded-lg border border-border-subtle bg-bg-surface p-6 transition-all duration-200 hover:border-cyan-500/30 hover:shadow-glow"
-              >
-                <h3 className="text-base font-semibold text-text-primary">{s.name}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-text-muted">{s.summary}</p>
+            {CORE.map((s) => {
+              const Icon = PLAN_ICONS[s.id]
+              return (
+                <Link
+                  key={s.id}
+                  href="/services"
+                  className="group relative flex flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-surface p-6 transition-all duration-200 hover:border-cyan-500/40 hover:shadow-glow"
+                >
+                  {/* Accent rail — lights up on hover so the card reads as clickable */}
+                  <span className="absolute inset-x-0 top-0 h-px bg-cyan-500/0 transition-colors duration-200 group-hover:bg-cyan-500/50" />
 
-                <div className="mt-6 flex items-baseline gap-2 border-t border-border-subtle pt-4">
-                  <span className="text-lg font-semibold tabular-nums text-text-primary">
-                    ${s.priceUsd}
-                    <span className="text-xs font-normal text-text-disabled">/mo</span>
-                  </span>
-                  <span className="text-xs tabular-nums text-text-disabled">
-                    KES {s.priceKes.toLocaleString()}
-                  </span>
-                </div>
-              </Link>
-            ))}
+                  <div className="mb-5 flex items-center justify-between">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/5 transition-colors duration-200 group-hover:border-cyan-500/40 group-hover:bg-cyan-500/10">
+                      <Icon className="h-5 w-5 text-cyan-400" />
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-disabled">
+                      {s.category}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-text-primary">{s.name}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-text-muted">{s.summary}</p>
+
+                  <div className="mt-6 flex items-baseline gap-2 border-t border-border-subtle pt-4">
+                    <span className="text-lg font-semibold tabular-nums text-text-primary">
+                      ${s.priceUsd}
+                      <span className="text-xs font-normal text-text-disabled">/mo</span>
+                    </span>
+                    <span className="text-xs tabular-nums text-text-disabled">
+                      KES {s.priceKes.toLocaleString()}
+                    </span>
+                    <ArrowRight className="ml-auto h-4 w-4 shrink-0 self-center text-text-disabled transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-cyan-400" />
+                  </div>
+                </Link>
+              )
+            })}
           </div>
 
           {/* Capabilities — deliberately lighter than the service cards above:

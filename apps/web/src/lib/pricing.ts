@@ -10,6 +10,11 @@ export interface Plan {
   id: PlanId
   name: string
   /**
+   * One-word role in the SYNTRA model — Build / Operate / Grow. Shown as a card
+   * eyebrow so the three services read as one system, not three unrelated products.
+   */
+  category: string
+  /**
    * The single description shown on every card surface. 12–15 words, plain
    * English, no stack names. One field on purpose: two description fields is
    * how the cards got bulky before.
@@ -35,6 +40,7 @@ export const PLANS: Plan[] = [
   {
     id: "sites",
     name: "Syntra Sites",
+    category: "Build",
     summary: "Built, hosted and improved every month — you never have to touch it.",
     priceUsd: 297,
     priceKes: kes(process.env.NEXT_PUBLIC_INTASEND_PRICE_SITES_KES, 38700),
@@ -52,6 +58,7 @@ export const PLANS: Plan[] = [
   {
     id: "flow",
     name: "Syntra Flow",
+    category: "Operate",
     summary: "We rebuild the work your team repeats by hand so it runs itself.",
     priceUsd: 497,
     priceKes: kes(process.env.NEXT_PUBLIC_INTASEND_PRICE_FLOW_KES, 64700),
@@ -70,6 +77,7 @@ export const PLANS: Plan[] = [
   {
     id: "marketing",
     name: "Syntra Marketing",
+    category: "Grow",
     summary: "Content, campaigns and follow-up that keep running so your pipeline never goes quiet.",
     priceUsd: 697,
     priceKes: kes(process.env.NEXT_PUBLIC_INTASEND_PRICE_MARKETING_KES, 90700),
@@ -87,6 +95,7 @@ export const PLANS: Plan[] = [
   {
     id: "os",
     name: "Syntra OS",
+    category: "Everything",
     summary: "Sites, Flow and Marketing running together, with a team that owns the outcome.",
     priceUsd: 997,
     priceKes: kes(process.env.NEXT_PUBLIC_INTASEND_PRICE_OS_KES, 129700),
