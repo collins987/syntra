@@ -3,7 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "SYNTRA — Build. Automate. Scale.",
+  title: "SYNTRA | Build. Automate. Scale.",
   description:
     "AI-powered websites, workflows, marketing and business automation systems that work while you focus on what matters.",
 }

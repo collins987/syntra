@@ -4,7 +4,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: {
-    default: "SYNTRA — AI-Powered Business Automation",
+    default: "SYNTRA | AI-Powered Business Automation",
     template: "%s | SYNTRA",
   },
   description:
@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "SYNTRA",
-    title: "SYNTRA — AI-Powered Business Automation",
+    title: "SYNTRA | AI-Powered Business Automation",
     description: "Build. Automate. Scale.",
-    images: [{ url: "/logo-banner.png", width: 1344, height: 768, alt: "SYNTRA — The AI Operating System for Modern Business" }],
+    images: [{ url: "/logo-banner.png", width: 1344, height: 768, alt: "SYNTRA | The AI Operating System for Modern Business" }],
   },
   twitter: {
     card: "summary_large_image",

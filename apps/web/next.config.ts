@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  // Generate source maps so Sentry can upload and resolve stack traces.
+  // deleteSourcemapsAfterUpload in Sentry config removes them post-upload.
+  productionBrowserSourceMaps: true,
 }
 
 export default withSentryConfig(nextConfig, {
@@ -14,7 +17,6 @@ export default withSentryConfig(nextConfig, {
   ...(process.env.SENTRY_AUTH_TOKEN ? { authToken: process.env.SENTRY_AUTH_TOKEN } : {}),
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  hideSourceMaps: false,
   webpack: { treeshake: { removeDebugLogging: true } },
   sourcemaps: {
     disable: !process.env.SENTRY_AUTH_TOKEN,
