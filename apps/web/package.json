@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:headers": "node scripts/verify-security-headers.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
@@ -17,6 +18,8 @@
     "@supabase/supabase-js": "^2.47.0",
     "@syntra/db": "workspace:*",
     "@syntra/ui": "workspace:*",
+    "@upstash/ratelimit": "^2.1.0",
+    "@upstash/redis": "^1.38.4",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "next": "^15.3.0",

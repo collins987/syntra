@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import { SignupForm } from "./signup-form"
 
 export const metadata: Metadata = { title: "Create Account" }
@@ -10,9 +11,7 @@ export default function SignupPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500 shadow-glow">
-            <span className="text-base font-bold text-bg-base">S</span>
-          </div>
+          <Image src="/logo-mark.png" alt="SYNTRA" width={40} height={40} className="h-10 w-10" priority />
           <div className="text-center">
             <h1 className="text-lg font-semibold tracking-wide text-text-primary">SYNTRA</h1>
             <p className="text-sm text-text-muted">Create your account</p>

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { CheckCircle, Zap, Globe, Bot, BarChart3, Mail, Users } from "lucide-react"
 
 const INDUSTRIES = [
@@ -77,9 +78,7 @@ export default function AuditPage() {
       {/* Nav */}
       <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500">
-            <span className="text-xs font-bold text-bg-base">S</span>
-          </div>
+          <Image src="/logo-mark.png" alt="SYNTRA" width={28} height={28} className="h-7 w-7" />
           <span className="text-sm font-semibold tracking-wide text-text-primary">SYNTRA</span>
         </Link>
         <Link href="/pricing" className="text-sm text-text-muted hover:text-text-primary transition-colors">

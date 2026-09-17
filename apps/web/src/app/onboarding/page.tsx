@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Image from "next/image"
 import { Globe, Zap, Megaphone, Layers, ChevronRight, Check } from "lucide-react"
 import { PLANS, type PlanId } from "@/lib/pricing"
 
@@ -139,9 +140,7 @@ export default function OnboardingPage() {
     <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-12">
       {/* Logo */}
       <div className="mb-12 flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500">
-          <span className="text-sm font-bold text-bg-base">S</span>
-        </div>
+        <Image src="/logo-mark.png" alt="SYNTRA" width={32} height={32} className="h-8 w-8" />
         <span className="text-base font-semibold tracking-wide text-text-primary">SYNTRA</span>
       </div>
 

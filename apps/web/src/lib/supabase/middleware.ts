@@ -1,5 +1,19 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { applySecurityHeaders } from "@/lib/security/headers"
+import { checkRateLimit, getClientIp, setRateLimitHeaders } from "@/lib/rate-limit"
+
+/**
+ * Copies only cookies (session refresh) from `source` onto `target`.
+ *
+ * Deliberately NOT a blanket header copy: NextResponse.next() carries Next's own
+ * internal x-middleware-next / x-middleware-override-headers markers, and copying
+ * those onto a redirect or JSON response confuses Next's middleware runtime into
+ * treating the response as a "continue" rather than the terminal response it is.
+ */
+function copyCookies(target: NextResponse, source: NextResponse): void {
+  source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie))
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -27,21 +41,60 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }))
 
+  applySecurityHeaders(supabaseResponse)
+
   const pathname = request.nextUrl.pathname
+
+  // Rate limit SYNTRA's own API routes. Keyed by the signed-in user where we have
+  // one (fairer than IP for anyone behind a shared office/NAT address); an
+  // anonymous caller with no IP header at all (local dev, a non-Vercel host) is
+  // left unlimited rather than bucketed under one shared fake identity — that
+  // would let the first few such callers lock out every other one behind them,
+  // which is the rate limiter causing the very outage it exists to prevent.
+  if (pathname.startsWith("/api/")) {
+    const clientIp = user ? null : getClientIp(request)
+    const identity = user ? `user:${user.id}` : clientIp ? `ip:${clientIp}` : null
+    if (identity) {
+      const result = await checkRateLimit(pathname, identity)
+      if (result.limited) {
+        const retryAfterSeconds = result.reset
+          ? Math.max(1, Math.ceil((result.reset - Date.now()) / 1000))
+          : 60
+        const response = NextResponse.json(
+          { error: "Too many requests. Please slow down and try again shortly." },
+          { status: 429 }
+        )
+        applySecurityHeaders(response)
+        copyCookies(response, supabaseResponse)
+        response.headers.set("Retry-After", String(retryAfterSeconds))
+        setRateLimitHeaders(response, result)
+        return response
+      }
+      // Not limited: still tell a well-behaved caller how much budget is left,
+      // so it can back off on its own before ever hitting the 429 above.
+      setRateLimitHeaders(supabaseResponse, result)
+    }
+  }
 
   // Protect portal and admin routes
   if ((pathname.startsWith("/portal") || pathname.startsWith("/admin")) && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirectTo", pathname)
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    applySecurityHeaders(response)
+    copyCookies(response, supabaseResponse)
+    return response
   }
 
   // Redirect logged-in users away from auth pages
   if ((pathname === "/login" || pathname === "/signup") && user) {
     const url = request.nextUrl.clone()
     url.pathname = "/portal/dashboard"
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    applySecurityHeaders(response)
+    copyCookies(response, supabaseResponse)
+    return response
   }
 
   return supabaseResponse

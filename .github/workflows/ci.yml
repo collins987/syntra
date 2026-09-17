@@ -36,3 +36,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Stopgap for lib/security/headers.ts until a real test suite exists
+      # (PRODUCTION_READINESS_PLAN.md §2.3) — boots the real build and asserts
+      # the security headers a future edit could silently drop are still there.
+      - name: Verify security headers
+        run: pnpm --filter @syntra/web verify:headers

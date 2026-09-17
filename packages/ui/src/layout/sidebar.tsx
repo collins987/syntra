@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -103,14 +104,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         {collapsed ? (
-          <div className="flex h-6 w-6 items-center justify-center rounded bg-cyan-500">
-            <span className="text-[10px] font-bold text-bg-base">S</span>
-          </div>
+          <Image src="/logo-mark.png" alt="SYNTRA" width={24} height={24} className="h-6 w-6" />
         ) : (
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-cyan-500">
-              <span className="text-[10px] font-bold text-bg-base">S</span>
-            </div>
+            <Image src="/logo-mark.png" alt="SYNTRA" width={24} height={24} className="h-6 w-6" />
             <span className="text-[13px] font-semibold tracking-wider text-text-primary">
               SYNTRA
             </span>

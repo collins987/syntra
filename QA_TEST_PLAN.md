@@ -471,6 +471,34 @@ For every page, check: loads without console errors, the **empty state** for a n
 
 Run the 32 tests in **`SECURITY_REMEDIATION_PLAN.md` §7** (SYNC-01…07, WH-01…08, RLS-01…06, PAY-01…07, ONB-11…12, ADM-08…09) after migration 011 and the matching deploy. They are P0 unless marked otherwise. RLS-06 is the regression check that the portal still shows data.
 
+### 8.2 Security headers & rate limiting (`PRODUCTION_READINESS_PLAN.md` §2.1, §2.2; bug fixes in `ITEM_1_2_GAPS_AND_FIX_PLAN.md`)
+
+Verified locally against a real `next build && next start`: zero CSP violations and zero failed requests on every public page (browser console + network, re-checked after every fix below, not just once), the rate-limit routing table matched against every real route, and a CI check (`pnpm --filter @syntra/web verify:headers`) now fails the build if a required header goes missing — proven by deliberately removing one and watching the check catch it.
+
+**Not yet verified: production itself.** As of this writing nothing has been deployed — `curl -sI https://www.syntraco.tech` shows none of these headers yet. Every ID below marked P0 must be run for real after deploying; don't treat the local verification above as covering production.
+
+| ID | Pri | Test | Steps | Expected | Result |
+|---|---|---|---|---|---|
+| HDR-01 | P0 | Headers present | `curl -sI https://www.syntraco.tech` | `content-security-policy`, `reporting-endpoints`, `x-frame-options: DENY`, `strict-transport-security`, `referrer-policy`, `permissions-policy`, `cross-origin-opener-policy`, `cross-origin-resource-policy` all present | |
+| HDR-02 | P0 | No console/network breakage | Open `/`, `/pricing`, `/services`, `/about`, `/audit`, `/contact`, `/login`, `/signup`, `/case-studies`, `/legal/privacy`, `/legal/terms`, `/reset-password` in a real browser, check DevTools console and network tabs | Zero CSP violation errors, zero failed requests, on every page | |
+| HDR-03 | P0 | Portal/admin pages too | Log in, visit `/portal/dashboard`, `/portal/ai`, `/portal/settings` | Same — zero CSP violations. These are dynamic-rendered pages with Recharts, AI chat streaming and Supabase Realtime — genuinely never checked before, since it requires a real account | |
+| HDR-04 | P1 | Sentry replay still works | Trigger a client error while logged in | Session replay still records (worker-src allows Sentry's blob: worker) — check the event in Sentry has a **complete** replay attached, not just that recording started | |
+| HDR-05 | P1 | Clickjacking blocked | Build a throwaway HTML page with `<iframe src="https://www.syntraco.tech/portal/approvals">` and open it | Page refuses to render inside the iframe (frame-ancestors 'none'). Zero legitimate iframe usage exists anywhere in the app, confirmed by grep, so this should never need an exception. | |
+| HDR-06 | P2 | CSP reports reach Sentry, both mechanisms | Temporarily add an inline `onclick` or a disallowed remote script to a test page, load it in Chrome (tests `report-to`/`Reporting-Endpoints`) and in Safari (tests the `report-uri` fallback, since Safari doesn't support the Reporting API) | A CSP violation event appears in Sentry from both browsers | |
+| HDR-07 | P1 | securityheaders.com | Scan the production URL | Grade A or A+ | |
+| HDR-08 | P0 | CI catches a regression | Confirmed already: temporarily removed `X-Content-Type-Options` locally, ran `pnpm verify:headers` → failed with the exact missing header named, on all 3 checked routes. Re-run in the real GitHub Actions pipeline once pushed. | CI job fails on a real header regression, not just locally | |
+| RL-01 | P0 | Configured | Vercel env vars → confirm `UPSTASH_REDIS_REST_URL`/`_TOKEN` are set | Present | |
+| RL-02 | P0 | Public lead form limited | `for i in $(seq 1 7); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://www.syntraco.tech/api/audit -H "Content-Type: application/json" -d '{"name":"t","email":"t@t.com"}'; done` | First 5 succeed/validate normally; 6th+ return `429` with a `Retry-After` header | |
+| RL-03 | P0 | Limit is per-caller, not global | From a second IP, repeat RL-02 immediately after exhausting the first | Succeeds — the limit didn't leak across callers | |
+| RL-04 | P1 | AI chat limited | As a logged-in user, send 21 chat messages within 5 minutes | The 21st returns `429` | |
+| RL-05 | P0 | Webhooks exempt | Trigger `stripe trigger invoice.paid` more than 20 times quickly (or check Stripe's dashboard delivery log for 429s) | No `429` ever recorded against `/api/stripe/webhook` | |
+| RL-06 | P0 | Fails open on outage | Temporarily point `UPSTASH_REDIS_REST_URL` at an invalid host, redeploy, hit `/api/audit` | Request still succeeds (falls through), and a `[rate-limit] check failed` line appears in logs/Sentry. **Revert immediately after.** | |
+| RL-07 | P1 | Unconfigured is safe | Local dev with no Upstash vars set | Every route works normally; console shows the one-time "rate limiting is disabled" warning | |
+| RL-08 | P0 | **Payment routes are independent, not a shared pool (bug fix)** | As one user: call `/api/onboarding` 6 times, then immediately call `/api/stripe/link-subscription` (with a bad `sessionId`, just to reach the rate-limit check before the 400) | The `link-subscription` call is **not** `429` — it gets its own 10-per-10-min budget, separate from onboarding's, even though both are in the "payments" tier | |
+| RL-09 | P1 | **Rate-limit headers on success, not just 429 (new)** | `curl -sI -X POST https://www.syntraco.tech/api/audit -H "Content-Type: application/json" -d '{"name":"t","email":"t@t.com"}'` on a request that succeeds | `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` present (plus the `X-RateLimit-*` aliases) even though the response wasn't blocked | |
+| RL-10 | P1 | IP header trust | `curl -X POST https://www.syntraco.tech/api/audit -H "x-forwarded-for: 1.2.3.4" -H "Content-Type: application/json" -d '{"name":"t","email":"t@t.com"}'` repeated past the limit, then repeat with a different fake `x-forwarded-for` value | Still gets `429` on both — Vercel overwrites `x-forwarded-for` before this app sees it, so a spoofed value in the request has no effect (confirmed against Vercel's own docs; this test proves it against the real deployment) | |
+| RL-11 | P2 | Anonymous + no IP header doesn't lock out other anonymous users | Not practically testable against Vercel itself (it always sets an IP header) — instead, run locally with `curl -X POST http://localhost:3000/api/audit` past the old shared "unknown" bucket's limit, then confirm a **second, different** terminal's request also succeeds | Both succeed — no shared fake identity locking one anonymous caller out because of another's traffic | |
+
 ---
 
 ## 9. End-to-end journeys (the definition of done)
@@ -525,8 +553,9 @@ Rough effort: **2–3 focused days** once Stage 0 is done, plus about half a day
 | Phase 3 — Portal pages | 10 | | | | |
 | Cross-cutting | 7 | | | | |
 | Security remediation retest (§8.1) | 32 | | | | |
+| Security headers & rate limiting (§8.2) | 19 | | | | |
 | E2E journeys | 6 | | | | |
-| **Total** | **263** | | | | |
+| **Total** | **282** | | | | |
 
 **Sign-off**
 
