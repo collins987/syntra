@@ -85,7 +85,7 @@ These came from reading the code, not from running it. Each one has a test in th
 | **F-08** | **High** — *fixed, pending migration 011 + retest* | RLS | Members could write 9 org tables (e.g. set own subscription to active OS); 003 integrations policy ineffective; spend view bypassed RLS; cost ledger client-visible; payment-link routes trusted body `orgId` and could move subscriptions between orgs. **Fixed:** SELECT-only RLS, security-invoker view, server-verified onboarding and payment linking. | `SECURITY_REMEDIATION_PLAN.md` §3 | SEC-02…09, RLS-01…06, PAY-01…07, ONB-11…12 |
 | **F-09** | **Critical** — *fixed, pending retest* | Platform admin | `/admin` trusted `user_metadata.is_admin`, which any user can set on themselves, exposing all orgs' data. **Fixed:** `app_metadata` only, checked in the layout and every page. **You must re-grant your own access via SQL.** | `SECURITY_REMEDIATION_PLAN.md` §4, §6 | GRD-03, ADM-08…09 |
 | **F-04** | **Medium** | Auth / Invites | The login form ignores redirect parameters and always goes to `/portal/dashboard`. The two redirects also disagree: middleware sets `?redirectTo=` and the invite page sets `?redirect=`. As a result, **a logged-out invitee who logs in never returns to the invite, so it's never accepted.** | `app/login/login-form.tsx:28`, `lib/supabase/middleware.ts:36`, `invite/[token]/page.tsx:60` | AUTH-09, TEAM-06 |
-| **F-05** | **Medium** | Lead scoring | 1) The form sends `e-commerce` and `real-estate`, but the scorer checks for `ecommerce`, so **e-commerce leads never get the industry bonus**. 2) The lowest possible score is 50, so **tier D can never be assigned**. 3) The real weights (+10 to +50 for revenue) don't match `PROGRESS.md` (+10/+20/+30). | `app/api/audit/route.ts:56-68`, `audit/page.tsx:184` | AUD-03 … AUD-07 |
+| **F-05** | **Medium** | Lead scoring | 1) The form sends `e-commerce`, but the scorer's bonus list checks for `ecommerce` (no hyphen), so **e-commerce leads never get the industry bonus**. *Correction from an earlier pass of this table: Real Estate is fine* — `"Real Estate"` slugifies to `"real-estate"`, which the scorer's list also has, hyphen and all — verified directly against both files. 2) The lowest possible score is 50, so **tier D can never be assigned**. 3) The real weights (+10 to +50 for revenue) don't match `PROGRESS.md` (+10/+20/+30). | `app/api/audit/route.ts:56-68`, `audit/page.tsx:184` | AUD-03 … AUD-07 |
 | **F-06** | **High** | Payments config | `PROGRESS.md` records a **live** `INTASEND_SECRET_KEY` in `.env.local` with `INTASEND_SANDBOX=false`, so local testing can move real money. | `PROGRESS.md` → Security | ENV-04 |
 | **F-07** | Low | Stripe | The docs tell you to subscribe to `checkout.session.completed`, but the webhook has no handler for it. The subscription row is only written by `/api/stripe/link-subscription` during onboarding, so **a customer who pays and closes the tab before onboarding has no subscription row.** | `app/api/stripe/webhook/route.ts:45-97` | STR-09 |
 
@@ -101,11 +101,13 @@ Do these first. Most failures here turn later tests into `BLOCKED`.
 | ENV-02 | P0 | M-Pesa columns exist | `select column_name from information_schema.columns where table_name='subscriptions';` | Includes `payment_provider`, `intasend_api_ref`, `intasend_invoice_id` | |
 | ENV-03 | P0 | Required env vars set in Vercel | Vercel → Settings → Environment Variables; compare with the list in `PROGRESS.md` | All Phase 1–3 vars present for Production. None contain placeholder text. | |
 | ENV-04 | P0 | No live payment keys locally (F-06) | Check `.env.local` for `INTASEND_SANDBOX` and the key prefix | `INTASEND_SANDBOX=true` and a `_test_` key locally. `STRIPE_SECRET_KEY` starts with `sk_test_` locally. | |
-| ENV-05 | P0 | Encryption key valid and backed up | `node -e "console.log(process.env.CREDENTIAL_ENCRYPTION_KEY.length)"` with the env loaded | Exactly `64` hex chars; a copy exists outside the machine | |
+| ENV-05 | P0 | Encryption key valid and backed up | `node -e "console.log(process.env.CREDENTIAL_ENCRYPTION_KEY.length)"` with the env loaded | Exactly `64` hex chars; a copy exists outside the machine | **FAIL as of 2026-09-18** — the line is present in `.env.local` but empty. Blocks GW-01…14 (storing any credential throws). |
 | ENV-06 | P0 | Platform admin flag | Supabase → Auth → Users → your user → metadata | `"is_admin": true` | |
 | ENV-07 | P1 | Stripe products | Stripe Dashboard → Products | Sites $297, Flow $497, **Marketing $697**, OS $997, all monthly recurring. The price IDs match the Vercel env vars. | |
 | ENV-08 | P1 | Resend domain | Resend → Domains | `syntraco.tech` verified (SPF + DKIM green) | |
 | ENV-09 | P1 | DNS apex | `curl -sI https://syntraco.tech` | `308` → `https://www.syntraco.tech` | |
+| ENV-10 | P0 | `ANTHROPIC_API_KEY` set (local) | Check `.env.local` | **FAIL as of 2026-09-18** — the line is present but empty. Blocks every AI-\*, APR-\*, BUD-\* test below. | FAIL |
+| ENV-11 | P0 | Upstash rate-limit keys set (local) | Check `.env.local` for `UPSTASH_REDIS_REST_URL` / `_TOKEN` | **FAIL as of 2026-09-18** — neither line exists. Blocks RL-01…11 (§8.2) — you will not see a real `429`. | FAIL |
 | ENV-10 | P2 | Internal org renamed | `select name from organizations where id='0bd49ad6-e2a6-4e53-85e3-566bb972965b';` | `SYNTRA Internal` | |
 
 ---
@@ -258,7 +260,7 @@ The expected scores below come from the **actual code** (base 40 + revenue weigh
 | AUD-03 | P1 | Score – top | `over-1m` + SaaS | score **100**, tier **A** | |
 | AUD-04 | P1 | Score – middle | `50k-250k` + Other | score **75**, tier **B** | |
 | AUD-05 | P1 | Score – lowest | `under-10k` + Other | score **50**, tier **C** | |
-| AUD-06 | P1 | **E-commerce bonus (F-05)** | `under-10k` + E-commerce | **Intended:** 60 / B. **Predicted from code: 50 / C** (bonus never applied). Real Estate has the same problem. | |
+| AUD-06 | P1 | **E-commerce bonus (F-05)** | `under-10k` + E-commerce | **Intended:** 60 / B. **Predicted from code: 50 / C** (bonus never applied). Real Estate does **not** have this problem — confirmed it slugifies to `real-estate`, matching the scorer's list. | |
 | AUD-07 | P1 | **Tier D reachable (F-05)** | Try every combination | **Predicted: tier D never occurs.** Decide whether that's acceptable. | |
 | AUD-08 | P1 | Visible to SYNTRA | PLATFORM → `/admin/leads` | New lead is listed with its tier and score | |
 | AUD-09 | P2 | Abuse | Submit 20 times quickly; submit a 10,000-char name; submit `<script>alert(1)</script>` as name | Rate-limited or at least harmless; no XSS when viewed in `/admin/leads` | |
@@ -534,7 +536,7 @@ Rough effort: **2–3 focused days** once Stage 0 is done, plus about half a day
 
 | Area | Total | Pass | Fail | Blocked | N/A |
 |---|---|---|---|---|---|
-| Stage 0 — Environment | 10 | | | | |
+| Stage 0 — Environment | 12 | | | | |
 | Phase 1 — Build/CI | 8 | | | | |
 | Phase 1 — Website | 8 | | | | |
 | Phase 1 — Auth & guards | 14 | | | | |
@@ -555,7 +557,7 @@ Rough effort: **2–3 focused days** once Stage 0 is done, plus about half a day
 | Security remediation retest (§8.1) | 32 | | | | |
 | Security headers & rate limiting (§8.2) | 19 | | | | |
 | E2E journeys | 6 | | | | |
-| **Total** | **282** | | | | |
+| **Total** | **284** | | | | |
 
 **Sign-off**
 
@@ -579,6 +581,7 @@ Pre-filled with the code-review findings. Add a row for every `FAIL`.
 | D-008 | SEC-02, SEC-03, RLS-*, PAY-* | **High** | F-08: member write access to org data; RLS-bypassing view; untrusted payment linking | See `SECURITY_REMEDIATION_PLAN.md` §3 | 0 rows / 403 / 409 | Fixed in code + migration 011 | Fixed – pending verification |
 | D-009 | ADM-08 | **Critical** | F-09: any user can grant themselves `/admin` via `user_metadata` | `supabase.auth.updateUser({data:{is_admin:true}})` then open `/admin` | Redirected | Fixed in code | Fixed – pending verification |
 | D-004 | TEAM-06, AUTH-09 | Medium | Login ignores redirect; invites not accepted after login | See TEAM-06 | Return to invite | *(pending test)* | Open |
-| D-005 | AUD-06, AUD-07 | Medium | E-commerce/Real Estate bonus never applies; tier D unreachable | See AUD-06 | 60 / B | *(pending test)* | Open |
-| D-006 | ENV-04 | High | Live IntaSend key with sandbox off in `.env.local` | See ENV-04 | Sandbox locally | *(pending test)* | Open |
+| D-005 | AUD-06, AUD-07 | Medium | E-commerce bonus never applies (Real Estate is fine — corrected 2026-09-18); tier D unreachable | See AUD-06 | 60 / B | *(pending test)* | Open |
+| D-006 | ENV-04 | High | Live IntaSend key with sandbox off in `.env.local` | See ENV-04 | Sandbox locally | **Confirmed still live** — checked `.env.local` directly 2026-09-18: `INTASEND_SANDBOX=false` with an `ISSecretKey_live_...` key | Open |
 | D-007 | STR-09 | Low | No subscription row if customer pays then skips onboarding | See STR-09 | Row recorded | *(pending test)* | Open |
+| D-010 | — | Medium | `/api/team/invite`, `/api/team/remove`, `/api/org/update` write no `audit_logs` entry — the only sensitive mutation routes that don't | Invite, remove a member, rename the org → check `/portal/activity` | Entry appears for each | **Confirmed missing** — grepped all three route files 2026-09-18, zero `audit_logs` writes | Open |
