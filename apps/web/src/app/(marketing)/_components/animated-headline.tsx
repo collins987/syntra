@@ -17,7 +17,11 @@ const LINES: Array<{ text: string; accent?: boolean }> = [
   { text: "Business." },
 ]
 
-const STAGGER_MS = 30
+// Characters within a line follow each other closely; each new line waits a
+// beat longer. That extra pause is what makes the three lines read as three
+// phrases rather than one long mechanical stream of letters.
+const STAGGER_MS = 22
+const LINE_DELAY_MS = 90
 
 // The accent word is coloured per character along a cyan → violet ramp. A
 // single bg-clip-text gradient would be the obvious approach, but each
@@ -38,18 +42,26 @@ export function AnimatedHeadline({ className }: { className?: string }) {
 
   return (
     <h1 aria-label={sentence} className={className}>
-      {LINES.map((line) => {
+      {LINES.map((line, lineIndex) => {
         const words = line.text.split(" ")
         const accentLength = line.text.replace(/\s/g, "").length
         let accentIndex = 0
 
         return (
-          <span key={line.text} aria-hidden="true" className="block">
+          // overflow-hidden gives the line its clipping edge. The padding and
+          // matching negative margin extend that box below the baseline so
+          // descenders and antialiasing are never shaved off, without changing
+          // where the line actually sits.
+          <span
+            key={line.text}
+            aria-hidden="true"
+            className="block overflow-hidden pb-[0.14em] -mb-[0.14em]"
+          >
             {words.map((word, wordIndex) => (
               <span key={`${word}-${wordIndex}`} className="inline-block whitespace-nowrap">
                 {Array.from(word).map((char, i) => {
                   const style: CSSProperties = {
-                    animationDelay: `${charIndex++ * STAGGER_MS}ms`,
+                    animationDelay: `${charIndex++ * STAGGER_MS + lineIndex * LINE_DELAY_MS}ms`,
                   }
                   if (line.accent) {
                     style.color = rampColor(accentIndex++ / Math.max(accentLength - 1, 1))

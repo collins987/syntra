@@ -85,10 +85,13 @@ module.exports = {
         rise: "slideUp 0.5s ease-out backwards",
         drift: "drift 7s ease-in-out infinite",
         trace: "trace 3.5s linear infinite",
-        // Headline characters resolving into place. "backwards" matters: the
-        // stagger is done with animation-delay, and without it every character
-        // would flash at full opacity before its turn.
-        "letter-in": "letterIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards",
+        // Headline characters rising from behind a clipping edge. The easing
+        // is an expo-out: most of the distance is covered early, then it
+        // settles slowly, which is what makes the motion read as weighted
+        // rather than linear. "backwards" matters — the stagger is done with
+        // animation-delay, and without it every character would flash at full
+        // opacity before its turn.
+        "letter-in": "letterIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) backwards",
       },
       keyframes: {
         glowPulse: {
@@ -120,8 +123,10 @@ module.exports = {
           "100%": { backgroundPosition: "160% 0" },
         },
         letterIn: {
-          from: { opacity: "0", transform: "translateY(0.4em)", filter: "blur(8px)" },
-          to: { opacity: "1", transform: "translateY(0)", filter: "blur(0)" },
+          // Travels a little past its own height so it starts fully hidden
+          // behind the line's clipping edge, never half-visible.
+          from: { opacity: "0", transform: "translateY(115%)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
       },
     },

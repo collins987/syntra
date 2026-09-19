@@ -1,12 +1,11 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import { PLANS, CAPABILITIES } from "@/lib/pricing"
-import { MarketingFooter, SiteBackground } from "@/components/marketing/shell"
+import { MarketingFooter, MarketingNav, SiteBackground } from "@/components/marketing/shell"
 import { Check, CreditCard, Smartphone, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 type PayMethod = "card" | "mpesa"
@@ -179,23 +178,7 @@ function PricingContent() {
     <div className="min-h-screen bg-bg-base">
       <SiteBackground />
 
-      {/* Nav */}
-      <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
-        <Link href="/" className="flex items-center">
-          <Image src="/logo.png" alt="SYNTRA" width={40} height={40} className="h-10 w-auto" priority />
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-            Sign in
-          </Link>
-          <Link
-            href="/audit"
-            className="flex h-8 items-center rounded-md border border-border-subtle bg-bg-elevated px-4 text-sm text-text-muted hover:border-border hover:text-text-primary transition-colors"
-          >
-            Free audit
-          </Link>
-        </div>
-      </nav>
+      <MarketingNav />
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 py-20">
         {/* Header */}
