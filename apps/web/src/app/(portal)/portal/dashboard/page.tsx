@@ -103,23 +103,23 @@ export default async function DashboardPage({
         <KpiRow metrics={data.metrics} period={data.period} />
       </div>
 
-      {/* ── Performance + service overview ── */}
+      {/* ── Performance + AI agents ── */}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <PerformanceChart series={data.series} periodDays={data.period} />
 
-        <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
-          <ServiceOverview services={data.services} />
+        <div className="rounded-xl border border-border-subtle bg-bg-surface">
+          <AIAgents agents={data.agents} />
         </div>
       </div>
 
-      {/* ── Recent leads + AI agents ── */}
+      {/* ── Recent leads + service overview ── */}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <div className="min-w-0 overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
           <RecentLeads leads={data.recentLeads} />
         </div>
 
-        <div className="rounded-xl border border-border-subtle bg-bg-surface">
-          <AIAgents agents={data.agents} />
+        <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
+          <ServiceOverview services={data.services} />
         </div>
       </div>
 

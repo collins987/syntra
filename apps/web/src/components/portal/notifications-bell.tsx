@@ -38,15 +38,24 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
 
   // New notifications arrive live rather than only on next page load — the
   // same postgres_changes pattern the dashboard's activity feed already uses.
+  //
+  // The channel has to be created after an async getUser() call, but a
+  // cleanup function returned from inside that .then() is invisible to
+  // React — only a value returned synchronously from the effect itself is
+  // ever called on unmount. So the channel reference lives in a variable the
+  // effect's own (synchronous) cleanup can reach, guarded by `cancelled` so a
+  // slow getUser() resolving after unmount can't subscribe a channel nothing
+  // will ever remove.
   React.useEffect(() => {
     const supabase = createClient()
-    let userId: string | null = null
+    let cancelled = false
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
     supabase.auth.getUser().then(({ data }) => {
-      userId = data.user?.id ?? null
-      if (!userId) return
+      const userId = data.user?.id
+      if (!userId || cancelled) return
 
-      const channel = supabase
+      channel = supabase
         .channel(`notifications:${userId}`)
         .on(
           "postgres_changes",
@@ -58,11 +67,12 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
           }
         )
         .subscribe()
-
-      return () => {
-        supabase.removeChannel(channel)
-      }
     })
+
+    return () => {
+      cancelled = true
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [])
 
   React.useEffect(() => {

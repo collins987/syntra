@@ -25,12 +25,12 @@ function summarize(health: SystemHealth | null): { label: string; dot: string; t
     return { label: "Checking…", dot: "bg-text-disabled", text: "text-text-disabled" }
   }
   if (health.ok) {
-    return { label: "System Online", dot: "bg-success-400 animate-pulse", text: "text-success-400" }
+    return { label: "Online", dot: "bg-success-400 animate-pulse", text: "text-success-400" }
   }
   const downCount = Object.values(health.checks).filter((v) => !v).length
   const allDown = downCount === Object.keys(health.checks).length
   return allDown
-    ? { label: "System Offline", dot: "bg-error-400", text: "text-error-400" }
+    ? { label: "Offline", dot: "bg-error-400", text: "text-error-400" }
     : { label: "Degraded", dot: "bg-warning-400", text: "text-warning-400" }
 }
 
