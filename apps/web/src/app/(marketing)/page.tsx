@@ -103,7 +103,7 @@ export default function HomePage() {
                 z-index inside this wrapper. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-16 -z-10 animate-glow-pulse bg-[radial-gradient(closest-side,rgba(0,229,255,0.12),transparent_75%)] motion-reduce:animate-none"
+              className="pointer-events-none absolute -inset-16 -z-10 animate-glow-pulse bg-[radial-gradient(closest-side,rgba(0,229,255,0.13)_0%,rgba(0,229,255,0.06)_45%,rgba(0,229,255,0.015)_72%,rgba(0,229,255,0)_100%)] motion-reduce:animate-none"
             />
             <HeroMockup />
           </div>
@@ -265,7 +265,7 @@ export default function HomePage() {
                   >
                     {/* A pulse travelling down the line: the pipeline is moving */}
                     <span
-                      className="absolute inset-0 animate-trace bg-[linear-gradient(90deg,transparent,rgba(0,229,255,0.9),transparent)] bg-[length:60%_100%] bg-no-repeat motion-reduce:animate-none"
+                      className="absolute inset-0 animate-trace bg-[linear-gradient(90deg,rgba(0,229,255,0)_0%,rgba(0,229,255,0.9)_50%,rgba(0,229,255,0)_100%)] bg-[length:60%_100%] bg-no-repeat motion-reduce:animate-none"
                       style={{ animationDelay: `${i * 700}ms` }}
                     />
                   </span>

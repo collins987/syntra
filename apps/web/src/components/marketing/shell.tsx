@@ -28,26 +28,31 @@ const FOOTER_LINKS = [
  */
 export function SiteBackground() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0">
-      {/* Deep navy settling into black */}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,#0A0E17_0%,#080A0F_55%,#06080E_100%)]" />
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
+      {/* Deep navy settling into black. Extra stops rather than two: a long
+          two-stop gradient across a whole viewport quantises into visible
+          bands on a dark screen. */}
+      <div className="absolute inset-0 bg-[linear-gradient(174deg,#0B1020_0%,#0A0E1B_30%,#090C14_60%,#07090F_82%,#06080D_100%)]" />
 
-      {/* Grid texture, faded toward the centre so it never competes with
-          whatever is being read */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(30,41,53,0.28)_1px,transparent_1px),linear-gradient(90deg,rgba(30,41,53,0.28)_1px,transparent_1px)] bg-[size:40px_40px] [-webkit-mask-image:radial-gradient(75%_65%_at_60%_45%,transparent_5%,black_85%)] [mask-image:radial-gradient(75%_65%_at_60%_45%,transparent_5%,black_85%)]" />
+      {/* Glows. Every stop fades to the SAME hue at zero alpha, never to the
+          `transparent` keyword — `transparent` means transparent *black*, so
+          fading to it drags a grey fringe through the colour. That is what
+          made these read as badly mixed. The stepped falloff is also smoother
+          than a single stop, which bands. */}
+      <div className="absolute inset-0 bg-[radial-gradient(75%_65%_at_72%_26%,rgba(0,229,255,0.15)_0%,rgba(0,229,255,0.10)_20%,rgba(0,229,255,0.055)_40%,rgba(0,229,255,0.022)_62%,rgba(0,229,255,0.006)_82%,rgba(0,229,255,0)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(58%_48%_at_92%_0%,rgba(124,58,237,0.16)_0%,rgba(124,58,237,0.09)_28%,rgba(124,58,237,0.035)_55%,rgba(124,58,237,0.01)_78%,rgba(124,58,237,0)_100%)]" />
 
-      {/* Main cyan glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(58%_55%_at_70%_32%,rgba(0,229,255,0.13),transparent_72%)]" />
-      {/* Violet counterweight, for depth */}
-      <div className="absolute inset-0 bg-[radial-gradient(42%_42%_at_88%_8%,rgba(124,58,237,0.11),transparent_70%)]" />
+      {/* Two restrained diagonal beams, same zero-alpha rule */}
+      <div className="absolute -left-[10%] top-[20%] h-px w-[62%] rotate-[-17deg] bg-[linear-gradient(90deg,rgba(0,229,255,0)_0%,rgba(0,229,255,0.26)_50%,rgba(0,229,255,0)_100%)] blur-[2px]" />
+      <div className="absolute -top-[20%] right-[-8%] h-[140%] w-[30%] rotate-[14deg] bg-[linear-gradient(180deg,rgba(0,229,255,0.06)_0%,rgba(0,229,255,0.025)_45%,rgba(0,229,255,0)_100%)] blur-3xl" />
 
-      {/* Diagonal beams — two thin, one broad and soft */}
-      <div className="absolute -left-[8%] top-[18%] h-px w-[58%] rotate-[-17deg] bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent blur-[1.5px]" />
-      <div className="absolute left-[12%] top-[62%] h-px w-[46%] rotate-[-17deg] bg-gradient-to-r from-transparent via-cyan-300/[0.16] to-transparent blur-[1.5px]" />
-      <div className="absolute -top-[15%] right-[-6%] h-[130%] w-[26%] rotate-[14deg] bg-gradient-to-b from-cyan-500/[0.06] via-cyan-500/[0.03] to-transparent blur-3xl" />
+      {/* Vignette, eased through a middle stop so there is no visible ring */}
+      <div className="absolute inset-0 bg-[radial-gradient(125%_95%_at_58%_32%,rgba(4,6,11,0)_42%,rgba(4,6,11,0.18)_64%,rgba(4,6,11,0.5)_82%,rgba(4,6,11,0.82)_100%)]" />
 
-      {/* Vignette: edges stay dark and atmospheric */}
-      <div className="absolute inset-0 bg-[radial-gradient(115%_85%_at_55%_38%,transparent_50%,rgba(4,6,11,0.9)_100%)]" />
+      {/* Dither. Wide, low-contrast gradients quantise to 8-bit and band
+          regardless of how many stops they have; a faint noise layer breaks
+          the steps up. Invisible on its own, does the whole job. */}
+      <div className="bg-dither absolute inset-0" />
     </div>
   )
 }

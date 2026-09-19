@@ -56,3 +56,13 @@ body {
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:ring-offset-1 focus:ring-offset-bg-base;
 }
+
+/* Dither for the page background. Broad, low-contrast gradients on a dark
+   screen quantise to 8-bit and show as concentric bands; a faint noise layer
+   scatters the boundaries so the falloff reads as smooth. Lives here rather
+   than in a Tailwind arbitrary value because the data URI contains characters
+   that class-name parsing mangles. */
+.bg-dither {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+}
