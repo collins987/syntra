@@ -12,6 +12,7 @@ import type {
   ProviderRequest,
   ProviderResponse,
 } from "./types"
+import { fromWireToolName, toWireToolName } from "./tool-names"
 
 function client(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -31,7 +32,7 @@ function toAnthropicMessages(messages: NormalizedMessage[]): Anthropic.MessagePa
       const content: Anthropic.ContentBlockParam[] = []
       if (m.text) content.push({ type: "text", text: m.text })
       for (const tc of m.toolCalls) {
-        content.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.input as Record<string, unknown> })
+        content.push({ type: "tool_use", id: tc.id, name: toWireToolName(tc.name), input: tc.input as Record<string, unknown> })
       }
       out.push({ role: "assistant", content })
       continue
@@ -68,7 +69,7 @@ export const anthropicProvider: AIProvider = {
       system: req.system,
       messages: toAnthropicMessages(req.messages),
       ...(req.tools.length
-        ? { tools: req.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema as Anthropic.Tool.InputSchema })) }
+        ? { tools: req.tools.map((t) => ({ name: toWireToolName(t.name), description: t.description, input_schema: t.input_schema as Anthropic.Tool.InputSchema })) }
         : {}),
     })
 
@@ -79,7 +80,7 @@ export const anthropicProvider: AIProvider = {
 
     const toolCalls: NormalizedToolCall[] = response.content
       .filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use")
-      .map((b) => ({ id: b.id, name: b.name, input: b.input }))
+      .map((b) => ({ id: b.id, name: fromWireToolName(b.name), input: b.input }))
 
     return {
       text,

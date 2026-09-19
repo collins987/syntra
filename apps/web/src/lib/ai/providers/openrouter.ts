@@ -10,6 +10,7 @@ import type {
   ProviderRequest,
   ProviderResponse,
 } from "./types"
+import { fromWireToolName, toWireToolName } from "./tool-names"
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -43,7 +44,7 @@ function toOpenAiMessages(system: string, messages: NormalizedMessage[]): OpenAi
               tool_calls: m.toolCalls.map((tc) => ({
                 id: tc.id,
                 type: "function" as const,
-                function: { name: tc.name, arguments: JSON.stringify(tc.input) },
+                function: { name: toWireToolName(tc.name), arguments: JSON.stringify(tc.input) },
               })),
             }
           : {}),
@@ -100,7 +101,11 @@ export const openRouterProvider: AIProvider = {
           ? {
               tools: req.tools.map((t) => ({
                 type: "function",
-                function: { name: t.name, description: t.description, parameters: t.input_schema },
+                function: {
+                  name: toWireToolName(t.name),
+                  description: t.description,
+                  parameters: t.input_schema,
+                },
               })),
             }
           : {}),
@@ -126,7 +131,7 @@ export const openRouterProvider: AIProvider = {
         // ours to crash on — surface it as an empty object; the capability's own
         // `validate()` will then reject it with a clear "Invalid input" message.
       }
-      return { id: tc.id, name: tc.function.name, input }
+      return { id: tc.id, name: fromWireToolName(tc.function.name), input }
     })
 
     return {
