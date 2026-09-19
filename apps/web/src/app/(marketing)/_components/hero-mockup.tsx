@@ -115,6 +115,7 @@ export function HeroMockup() {
                   <path
                     d="M0,46 L28,41 L56,43 L84,31 L112,27 L140,17 L168,21 L200,7 L200,56 L0,56 Z"
                     fill="url(#hero-spark)"
+                    className="animate-fade-in"
                   />
                   <polyline
                     points="0,46 28,41 56,43 84,31 112,27 140,17 168,21 200,7"
@@ -123,7 +124,11 @@ export function HeroMockup() {
                     strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    strokeDasharray="260"
+                    className="animate-draw motion-reduce:animate-none"
                   />
+                  {/* Live end-point: the number is still moving */}
+                  <circle cx="200" cy="7" r="2.5" fill="#00E5FF" className="animate-pulse-slow motion-reduce:animate-none" />
                 </svg>
               </div>
 
@@ -158,7 +163,7 @@ export function HeroMockup() {
       </div>
 
       {/* Phone — the same lead, seen from the other side of the system */}
-      <div className="absolute -bottom-7 -left-5 hidden w-[132px] rounded-xl border border-border bg-bg-surface p-2 shadow-modal lg:block">
+      <div className="absolute -bottom-7 -left-5 hidden w-[132px] animate-drift rounded-xl border border-border bg-bg-surface p-2 shadow-modal motion-reduce:animate-none lg:block">
         <span className="mx-auto mb-2 block h-0.5 w-8 rounded-full bg-border" />
         <div className="rounded-md border border-success-500/25 bg-success-500/10 px-1.5 py-1">
           <p className="flex items-center gap-1 text-[8px] font-medium text-success-400">
@@ -170,9 +175,15 @@ export function HeroMockup() {
           Score 87 (A)
         </p>
         <p className="mt-2 text-[8px] text-text-muted">Automations running…</p>
+        {/* Each step appears as it completes, so the automation reads as
+            running rather than as a finished list. */}
         <div className="mt-1 space-y-1">
-          {RUNNING.map((step) => (
-            <p key={step} className="flex items-center gap-1 text-[8px] text-text-secondary">
+          {RUNNING.map((step, i) => (
+            <p
+              key={step}
+              style={{ animationDelay: `${600 + i * 450}ms` }}
+              className="flex animate-rise items-center gap-1 text-[8px] text-text-secondary motion-reduce:animate-none"
+            >
               <Check className="h-2 w-2 shrink-0 text-success-400" />
               <span className="truncate">{step}</span>
             </p>

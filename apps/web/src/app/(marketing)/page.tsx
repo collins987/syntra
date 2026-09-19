@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import Image from "next/image"
 import Link from "next/link"
 import {
   Globe,
@@ -13,6 +12,7 @@ import {
   UserCheck,
 } from "lucide-react"
 import { PLANS, CAPABILITIES, getPlan, type PlanId } from "@/lib/pricing"
+import { MarketingShell } from "@/components/marketing/shell"
 import { HeroMockup } from "./_components/hero-mockup"
 
 export const metadata: Metadata = {
@@ -50,44 +50,17 @@ const STEPS = [
 ]
 
 // Claims about how the product is built, which are checkable in the product —
-// not claims about traction, which would not be.
+// not claims about traction, which would not be. Said plainly: a business
+// owner should not need to know what AES-256 is to understand the promise.
 const GUARANTEES = [
-  { value: "AES-256", label: "Your credentials encrypted at rest" },
-  { value: "You approve", label: "Every irreversible action waits for you" },
-  { value: "Audit log", label: "Every action recorded, start to finish" },
+  { value: "Security", label: "Your passwords stay protected, always" },
+  { value: "You decide", label: "Nothing important happens without your approval" },
+  { value: "Full history", label: "See everything the system did, any time" },
 ]
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-bg-base">
-      {/* Background grid */}
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(30,41,53,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(30,41,53,0.25)_1px,transparent_1px)] bg-[size:40px_40px]" />
-
-      {/* Nav */}
-      <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
-        <div className="flex items-center">
-          <Image src="/logo.png" alt="SYNTRA" width={40} height={40} className="h-10 w-auto" priority />
-        </div>
-        <div className="hidden items-center gap-6 text-sm text-text-muted md:flex">
-          <Link href="/" className="text-cyan-400" aria-current="page">Home</Link>
-          <a href="/services" className="hover:text-text-primary transition-colors">Services</a>
-          <a href="/case-studies" className="hover:text-text-primary transition-colors">Case Studies</a>
-          <a href="/pricing" className="hover:text-text-primary transition-colors">Pricing</a>
-          <a href="/about" className="hover:text-text-primary transition-colors">About</a>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm text-text-muted hover:text-text-primary transition-colors">
-            Sign in
-          </Link>
-          <Link
-            href="/audit"
-            className="flex h-8 items-center rounded-md bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
-          >
-            Get free audit →
-          </Link>
-        </div>
-      </nav>
-
+    <MarketingShell>
       {/* Hero */}
       <section className="relative z-10 px-6 pb-16 pt-20 md:pt-24">
         <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2 lg:gap-12">
@@ -128,7 +101,13 @@ export default function HomePage() {
           </div>
 
           {/* Product illustration — decorative, see the component */}
-          <div className="lg:pl-4">
+          <div className="relative lg:pl-4">
+            {/* Contained glow so the panel reads as lit from within, rather
+                than sitting flat on the page. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-16 -z-10 animate-glow-pulse bg-[radial-gradient(closest-side,rgba(0,229,255,0.14),transparent_75%)] motion-reduce:animate-none"
+            />
             <HeroMockup />
           </div>
         </div>
@@ -286,9 +265,15 @@ export default function HomePage() {
                   <span
                     aria-hidden="true"
                     className="absolute left-[calc(50%+2.25rem)] right-[calc(-50%+2.25rem)] top-7 hidden h-px bg-border-subtle lg:block"
-                  />
+                  >
+                    {/* A pulse travelling down the line: the pipeline is moving */}
+                    <span
+                      className="absolute inset-0 animate-trace bg-[linear-gradient(90deg,transparent,rgba(0,229,255,0.9),transparent)] bg-[length:60%_100%] bg-no-repeat motion-reduce:animate-none"
+                      style={{ animationDelay: `${i * 700}ms` }}
+                    />
+                  </span>
                 )}
-                <span className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-cyan-500/20 bg-cyan-500/5">
+                <span className="group relative mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-cyan-500/20 bg-cyan-500/5 transition-colors duration-200 hover:border-cyan-500/50 hover:bg-cyan-500/10">
                   <s.icon className="h-5 w-5 text-cyan-400" />
                 </span>
                 <h3 className="mt-4 text-sm font-semibold text-text-primary">
@@ -337,33 +322,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-border-subtle px-6 py-10">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="SYNTRA" width={36} height={36} className="h-9 w-auto" />
-              <span className="text-xs text-text-muted">AI automation for modern business</span>
-            </div>
-
-            <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-text-muted">
-              <a href="/services" className="transition-colors hover:text-text-primary">Services</a>
-              <a href="/pricing" className="transition-colors hover:text-text-primary">Pricing</a>
-              <a href="/case-studies" className="transition-colors hover:text-text-primary">Case Studies</a>
-              <a href="/about" className="transition-colors hover:text-text-primary">About</a>
-              <a href="/contact" className="transition-colors hover:text-text-primary">Contact</a>
-            </nav>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 border-t border-border-subtle pt-6 text-xs text-text-disabled sm:flex-row sm:items-center sm:justify-between">
-            <span>© 2026 SYNTRA LLC. All rights reserved.</span>
-            <div className="flex gap-4">
-              <a href="/legal/privacy" className="transition-colors hover:text-text-muted">Privacy</a>
-              <a href="/legal/terms" className="transition-colors hover:text-text-muted">Terms</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </MarketingShell>
   )
 }

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import { PLANS, CAPABILITIES } from "@/lib/pricing"
+import { MarketingFooter } from "@/components/marketing/shell"
 import { Check, CreditCard, Smartphone, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 type PayMethod = "card" | "mpesa"
@@ -399,6 +400,8 @@ function PricingContent() {
           )}
         </div>
       </div>
+
+      <MarketingFooter />
     </div>
   )
 }

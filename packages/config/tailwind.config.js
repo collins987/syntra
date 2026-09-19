@@ -78,6 +78,13 @@ module.exports = {
         "flow": "flow 2s linear infinite",
         "fade-in": "fadeIn 0.2s ease-out",
         "slide-up": "slideUp 0.2s ease-out",
+        // Motion that explains what the system is doing: a line drawing itself
+        // as data arrives, a pulse travelling down a connection, a card that
+        // breathes. Not decoration for its own sake.
+        draw: "draw 1.8s ease-out forwards",
+        rise: "slideUp 0.5s ease-out backwards",
+        drift: "drift 7s ease-in-out infinite",
+        trace: "trace 3.5s linear infinite",
       },
       keyframes: {
         glowPulse: {
@@ -95,6 +102,18 @@ module.exports = {
         slideUp: {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
+        },
+        draw: {
+          from: { strokeDashoffset: "260" },
+          to: { strokeDashoffset: "0" },
+        },
+        drift: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+        trace: {
+          "0%": { backgroundPosition: "-60% 0" },
+          "100%": { backgroundPosition: "160% 0" },
         },
       },
     },

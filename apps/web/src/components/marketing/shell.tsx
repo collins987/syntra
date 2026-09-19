@@ -1,10 +1,21 @@
 import Image from "next/image"
 import Link from "next/link"
-import { PLANS } from "@/lib/pricing"
 
+// The single nav and footer for every marketing page, home included. They used
+// to exist twice — once here, once inline in the home page — which is how the
+// two drifted apart.
 const NAV_LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/services", label: "Services" },
+  { href: "/case-studies", label: "Case Studies" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
+]
+
+const FOOTER_LINKS = [
   { href: "/services", label: "Services" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/case-studies", label: "Case Studies" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ]
@@ -41,71 +52,27 @@ export function MarketingNav() {
 
 export function MarketingFooter() {
   return (
-    <footer className="relative z-10 border-t border-border-subtle px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 grid gap-8 md:grid-cols-4">
-          <div>
-            <Link href="/" className="mb-3 flex items-center">
-              <Image src="/logo.png" alt="SYNTRA" width={32} height={32} className="h-8 w-auto" />
+    <footer className="relative z-10 border-t border-border-subtle px-6 py-7">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center">
+            <Image src="/logo.png" alt="SYNTRA" width={32} height={32} className="h-8 w-auto" />
+          </Link>
+          <span className="text-xs text-text-disabled">
+            © {new Date().getFullYear()} SYNTRA LLC · Nairobi, Kenya
+          </span>
+        </div>
+
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-muted">
+          {FOOTER_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className="transition-colors hover:text-text-primary">
+              {link.label}
             </Link>
-            <p className="text-xs text-text-disabled leading-relaxed">
-              The AI Operating System for Modern Business. Build. Automate. Scale.
-            </p>
-          </div>
-
-          <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
-              Products
-            </p>
-            <ul className="space-y-2 text-sm text-text-muted">
-              {PLANS.map((p) => (
-                <li key={p.id}>
-                  <Link href="/services" className="hover:text-text-primary transition-colors">{p.name}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
-              Company
-            </p>
-            <ul className="space-y-2 text-sm text-text-muted">
-              <li><Link href="/about" className="hover:text-text-primary transition-colors">About</Link></li>
-              <li><Link href="/services" className="hover:text-text-primary transition-colors">Services</Link></li>
-              <li><Link href="/pricing" className="hover:text-text-primary transition-colors">Pricing</Link></li>
-              <li><Link href="/contact" className="hover:text-text-primary transition-colors">Contact</Link></li>
-              <li><Link href="/audit" className="hover:text-text-primary transition-colors">Free Audit</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
-              Get in Touch
-            </p>
-            <ul className="space-y-2 text-sm text-text-muted">
-              <li>
-                <a href="mailto:hello@syntraco.tech" className="hover:text-text-primary transition-colors">
-                  hello@syntraco.tech
-                </a>
-              </li>
-              <li>
-                <a href="mailto:support@syntraco.tech" className="hover:text-text-primary transition-colors">
-                  support@syntraco.tech
-                </a>
-              </li>
-              <li className="pt-1 text-xs text-text-disabled">Nairobi, Kenya</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-border-subtle pt-6 text-xs text-text-disabled sm:flex-row">
-          <span>© {new Date().getFullYear()} SYNTRA LLC. All rights reserved.</span>
-          <div className="flex gap-4">
-            <Link href="/legal/privacy" className="hover:text-text-muted transition-colors">Privacy Policy</Link>
-            <Link href="/legal/terms" className="hover:text-text-muted transition-colors">Terms of Service</Link>
-          </div>
-        </div>
+          ))}
+          <span aria-hidden="true" className="h-3 w-px bg-border-subtle" />
+          <Link href="/legal/privacy" className="transition-colors hover:text-text-primary">Privacy</Link>
+          <Link href="/legal/terms" className="transition-colors hover:text-text-primary">Terms</Link>
+        </nav>
       </div>
     </footer>
   )
