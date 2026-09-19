@@ -15,7 +15,7 @@ const STATUS_META: Record<string, { label: string; tone: BadgeTone; icon: typeof
     label: "Active",
     tone: "cyan",
     icon: Play,
-    dot: "bg-cyan-400 animate-pulse shadow-[0_0_5px_rgba(0,229,255,0.7)]",
+    dot: "bg-cyan-400",
   },
   paused: { label: "Paused", tone: "neutral", icon: Pause, dot: "bg-border-strong" },
   error: { label: "Error", tone: "bad", icon: AlertCircle, dot: "bg-error-400" },

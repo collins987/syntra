@@ -57,41 +57,6 @@ export function PerformanceChart({
   const lastX = points.length > 1 ? VIEW_W : VIEW_W / 2
   const lastY = last ? PAD_TOP + (VIEW_H - PAD_TOP - PAD_BOTTOM) * (1 - (max > 0 ? last.v / max : 0)) : 0
 
-  // The line draws itself in on load, matching the hero section's chart. That
-  // one uses a fixed-length CSS keyframe (its illustration never changes
-  // shape), but this path's length varies with the selected period — 7 vs 90
-  // points on the same 720-wide viewBox produces very different path
-  // lengths. A shared fixed-offset keyframe would either finish early or cut
-  // the line off, so the length is measured at runtime and the reveal is
-  // driven by a transition instead.
-  const pathRef = React.useRef<SVGPathElement>(null)
-  const [pathLength, setPathLength] = React.useState<number | null>(null)
-  const [revealed, setRevealed] = React.useState(false)
-
-  React.useEffect(() => {
-    const length = pathRef.current?.getTotalLength() ?? null
-    setPathLength(length)
-    if (length === null) return
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setRevealed(true)
-      return
-    }
-
-    setRevealed(false)
-    // Two frames: the first paints the fully-hidden state, the second
-    // starts the transition — combining them in one frame means the browser
-    // never actually paints "hidden" and there's nothing to visibly draw.
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setRevealed(true))
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-    }
-  }, [line])
-
   return (
     <div className="rounded-xl border border-border-subtle bg-bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -146,12 +111,10 @@ export function PerformanceChart({
               </linearGradient>
             </defs>
 
-            {/* No gridlines — the hero section's chart doesn't have them
-                either, and they add visual noise a single-series line
+            {/* No gridlines — they add visual noise a single-series line
                 doesn't need. */}
-            <path d={area} fill="url(#perf-fill)" className="animate-fade-in" />
+            <path d={area} fill="url(#perf-fill)" />
             <path
-              ref={pathRef}
               d={line}
               fill="none"
               stroke="#00E5FF"
@@ -159,26 +122,9 @@ export function PerformanceChart({
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
-              style={
-                pathLength
-                  ? {
-                      strokeDasharray: pathLength,
-                      strokeDashoffset: revealed ? 0 : pathLength,
-                      transition: "stroke-dashoffset 1.4s cubic-bezier(0.65,0,0.35,1)",
-                    }
-                  : undefined
-              }
             />
-            {/* Live end-point — the number is still moving, same as the hero. */}
-            {last && (
-              <circle
-                cx={lastX}
-                cy={lastY}
-                r="3"
-                fill="#00E5FF"
-                className="animate-pulse-slow motion-reduce:animate-none"
-              />
-            )}
+            {/* Marks the latest value's position on the line. */}
+            {last && <circle cx={lastX} cy={lastY} r="3" fill="#00E5FF" />}
           </svg>
 
           <div className="mt-2 flex items-center justify-between text-[10px] text-text-disabled">

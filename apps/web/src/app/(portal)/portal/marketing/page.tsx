@@ -118,7 +118,7 @@ export default async function MarketingPage() {
                   action={
                     <Link
                       href="/portal/ai"
-                      className="flex h-9 items-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400"
+                      className="flex h-9 items-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base transition-colors hover:bg-cyan-400"
                     >
                       Open AI Center →
                     </Link>

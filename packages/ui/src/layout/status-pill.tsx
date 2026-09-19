@@ -25,7 +25,7 @@ function summarize(health: SystemHealth | null): { label: string; dot: string; t
     return { label: "Checking…", dot: "bg-text-disabled", text: "text-text-disabled" }
   }
   if (health.ok) {
-    return { label: "Online", dot: "bg-success-400 animate-pulse", text: "text-success-400" }
+    return { label: "Online", dot: "bg-success-400", text: "text-success-400" }
   }
   const downCount = Object.values(health.checks).filter((v) => !v).length
   const allDown = downCount === Object.keys(health.checks).length

@@ -19,7 +19,7 @@ const variantStyles: Record<BadgeVariant, string> = {
 }
 
 const dotStyles: Record<BadgeVariant, string> = {
-  running: "bg-cyan-400 animate-pulse",
+  running: "bg-cyan-400",
   completed: "bg-success-400",
   scheduled: "bg-text-muted",
   failed: "bg-error-400",

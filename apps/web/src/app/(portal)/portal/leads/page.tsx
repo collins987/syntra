@@ -44,7 +44,7 @@ export default async function LeadsPage() {
   }
 
   return (
-    <div className="animate-fade-in flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-border-subtle px-8 py-6">
         <div className="flex items-start justify-between">
           <div>
@@ -133,7 +133,7 @@ function EmptyState() {
       <a
         href="/audit"
         target="_blank"
-        className="mt-6 flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
+        className="mt-6 flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors"
       >
         <TrendingUp className="h-3.5 w-3.5" />
         View audit page

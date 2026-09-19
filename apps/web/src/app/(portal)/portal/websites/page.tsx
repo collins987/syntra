@@ -14,7 +14,7 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string 
   },
   deploying: {
     label: "Deploying",
-    dot: "bg-cyan-400 animate-pulse",
+    dot: "bg-cyan-400",
     badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   },
   onboarding: {
@@ -50,7 +50,7 @@ export default async function WebsitesPage() {
   }
 
   return (
-    <div className="animate-fade-in flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-border-subtle px-8 py-6">
         <div className="flex items-start justify-between">
           <div>
@@ -59,7 +59,7 @@ export default async function WebsitesPage() {
               {websites.length} site{websites.length !== 1 ? "s" : ""} managed by SYNTRA
             </p>
           </div>
-          <button className="flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors">
+          <button className="flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors">
             <Globe className="h-3.5 w-3.5" />
             New website
           </button>
@@ -134,7 +134,7 @@ function EmptyState() {
       </div>
       <p className="text-base font-semibold text-text-primary">No websites yet</p>
       <p className="mt-1 text-sm text-text-muted">Your AI-generated website will appear here once created.</p>
-      <button className="mt-6 flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors">
+      <button className="mt-6 flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors">
         <Globe className="h-3.5 w-3.5" />
         Create website
       </button>

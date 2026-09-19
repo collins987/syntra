@@ -283,7 +283,7 @@ export function IntegrationsClient({
                   <button
                     onClick={mintToken}
                     disabled={busy !== null || selected.length === 0}
-                    className="flex h-10 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400 disabled:opacity-40"
+                    className="flex h-10 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base transition-colors hover:bg-cyan-400 disabled:opacity-40"
                   >
                     {busy === "token" ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

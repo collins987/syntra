@@ -105,7 +105,7 @@ export function BudgetForm({
       <button
         onClick={save}
         disabled={saving}
-        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400 disabled:opacity-50"
+        className="flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base transition-colors hover:bg-cyan-400 disabled:opacity-50"
       >
         {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
         Save budget

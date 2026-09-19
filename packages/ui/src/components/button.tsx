@@ -21,7 +21,7 @@ export function Button({
           "rounded-lg": size === "lg",
         },
         {
-          "bg-cyan-500 text-bg-base hover:bg-cyan-400 shadow-glow-sm": variant === "primary",
+          "bg-cyan-500 text-bg-base hover:bg-cyan-400": variant === "primary",
           "border border-border bg-transparent text-text-primary hover:bg-bg-overlay": variant === "secondary",
           "bg-transparent text-text-secondary hover:text-text-primary hover:bg-bg-overlay": variant === "ghost",
           "bg-error-600 text-white hover:bg-error-500": variant === "destructive",

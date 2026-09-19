@@ -39,7 +39,7 @@ export function OsBanner() {
         </Link>
         <Link
           href="/portal/billing"
-          className="flex h-9 shrink-0 items-center rounded-lg bg-cyan-500 px-4 text-[12.5px] font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400"
+          className="flex h-9 shrink-0 items-center rounded-lg bg-cyan-500 px-4 text-[12.5px] font-semibold text-bg-base transition-colors hover:bg-cyan-400"
         >
           Upgrade to Syntra OS →
         </Link>

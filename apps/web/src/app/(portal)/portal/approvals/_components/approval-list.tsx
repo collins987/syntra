@@ -99,7 +99,7 @@ export function ApprovalList({
                     <button
                       onClick={() => decide(item.id, "approve")}
                       disabled={busyId !== null}
-                      className="flex h-9 items-center gap-1.5 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400 disabled:opacity-50"
+                      className="flex h-9 items-center gap-1.5 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base transition-colors hover:bg-cyan-400 disabled:opacity-50"
                     >
                       {busyId === item.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

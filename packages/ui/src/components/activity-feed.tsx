@@ -50,11 +50,7 @@ export function ActivityFeed({ items, className }: ActivityFeedProps) {
 
           {/* Status prefix */}
           <span
-            className={cn(
-              "shrink-0 text-[11px] tabular-nums",
-              statusColor[item.status],
-              item.status === "running" && "animate-pulse",
-            )}
+            className={cn("shrink-0 text-[11px] tabular-nums", statusColor[item.status])}
           >
             {statusPrefix[item.status]}
           </span>

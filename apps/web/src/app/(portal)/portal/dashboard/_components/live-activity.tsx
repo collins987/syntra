@@ -7,7 +7,7 @@ import type { ActivityRow } from "@/lib/dashboard"
 import type { WorkflowExecutionStatus } from "@syntra/db"
 
 const DOT: Record<WorkflowExecutionStatus, string> = {
-  running:   "bg-cyan-400 animate-pulse shadow-[0_0_6px_rgba(0,229,255,0.6)]",
+  running:   "bg-cyan-400",
   completed: "bg-[#2A3A4A]",
   retrying:  "bg-warning-400/80",
   failed:    "bg-error-400",
@@ -110,7 +110,7 @@ export function LiveActivity({
           Live System Activity
         </span>
         <span className="flex items-center gap-1.5 text-[10px] text-text-disabled">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-400" />
+          <span className="h-1.5 w-1.5 rounded-full bg-success-400" />
           Live
         </span>
       </div>

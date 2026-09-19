@@ -56,7 +56,7 @@ export default async function DashboardPage({
           </p>
           <Link
             href="/onboarding"
-            className="mt-6 inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-500 px-6 text-sm font-semibold text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400"
+            className="mt-6 inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-500 px-6 text-sm font-semibold text-bg-base transition-colors hover:bg-cyan-400"
           >
             Complete onboarding <ArrowRight className="h-4 w-4" />
           </Link>

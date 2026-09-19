@@ -64,7 +64,7 @@ export default async function BillingPage() {
           !subscription && (
             <Link
               href="/pricing"
-              className="flex h-9 items-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
+              className="flex h-9 items-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors"
             >
               Upgrade plan →
             </Link>

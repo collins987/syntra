@@ -269,7 +269,7 @@ export function ChatClient({
           <button
             type="submit"
             disabled={sending || !input.trim() || agent.status !== "active"}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500 text-bg-base shadow-glow-sm transition-colors hover:bg-cyan-400 disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500 text-bg-base transition-colors hover:bg-cyan-400 disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
           </button>

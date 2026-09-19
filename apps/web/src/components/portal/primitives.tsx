@@ -3,7 +3,7 @@ import type { ReactNode, ElementType } from "react"
 // Shared chrome for portal pages. Server-compatible — no "use client".
 
 export function PageShell({ children }: { children: ReactNode }) {
-  return <div className="animate-fade-in flex h-full flex-col">{children}</div>
+  return <div className="flex h-full flex-col">{children}</div>
 }
 
 export function PageHeader({
