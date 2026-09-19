@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | **Implemented (2026-09-19), exactly as designed below.** `tsc --noEmit`, lint, and a full production build all pass. The OpenAI-shaped message translation (the trickiest new logic) was verified in isolation against 10 representative cases before trusting it. **Not yet verified against a real OpenRouter call** — that needs `OPENROUTER_API_KEY` actually set, which it isn't yet. |
+| **Status** | **Implemented and verified live in production (2026-09-19).** All three agents answer from real data through OpenRouter at `/portal/ai`, each via a real tool call: Ava→`site.read`, Leo→`data.query`, Max→`workflow.read`. Getting there required one fix this plan did not anticipate — see §9. |
 | **Requested by** | You want to build/test against OpenRouter now (cheaper, already have keys), and switch to native Anthropic later without a rewrite. |
 | **Constraint that must survive this change** | `lib/ai/gateway.ts` is "the ONLY caller of the Anthropic SDK in this codebase," enforced by a `no-restricted-imports` ESLint rule. Budget enforcement, tool-grant policy, and approval-queuing must keep working identically regardless of which model provider is actually answering. |
 
@@ -77,15 +77,43 @@ Four new/changed files in `lib/ai/`, no new npm dependency, no database migratio
 
 ---
 
-## What's left for you to do
+## 9. What this plan got wrong: tool names
 
-1. Add to `.env.local` (and Vercel, if you want this testable there too):
-   ```bash
-   AI_PROVIDER=openrouter
-   OPENROUTER_API_KEY=sk-or-v1-...   # the value that was sitting in ANTHROPIC_API_KEY — now in its correct slot
-   ```
-   `ANTHROPIC_API_KEY` can stay as-is (unused while `AI_PROVIDER=openrouter`) until you have a real one.
-2. Run one real chat through `/portal/ai` and confirm: a plain text reply works, and a tool-using request (e.g. asking Leo something that needs `data.query`) actually calls the tool and answers using its result — that's the part no amount of offline checking can substitute for.
-3. Try exceeding the budget with `hard_stop` on — confirm it refuses the same way it does under Anthropic.
+The design assumed the only hard part was translating *message* shape between Anthropic's
+`/v1/messages` and OpenAI's `/v1/chat/completions`. It was not. **Tool names are also
+constrained, identically, by both** — `^[a-zA-Z0-9_-]{1,128}$`. SYNTRA's capabilities are
+dotted (`email.send`, `data.query`) because those strings double as registry keys, Action
+Gateway URL paths and audit-log values, so every agent request was rejected outright:
 
-Tell me what happens on step 2 either way and I'll pull it apart if anything looks wrong, the same way we did with the n8n signing issue.
+```
+OpenRouter 400: {"error":{"message":"Provider returned error","code":400,
+  "metadata":{"raw":"tools.0.custom.name: String should match pattern '^[a-zA-Z0-9_-]{1,128}$'",
+  "provider_name":"Azure"}}}
+```
+
+The upstream errors came from Anthropic, Bedrock **and** Azure — so this was never an
+OpenRouter quirk. The native Anthropic path had the same defect and would have failed the
+same way the moment a real `ANTHROPIC_API_KEY` was used; the pre-existing `401`s had simply
+been failing earlier in the request, before schema validation ever ran.
+
+`lib/ai/providers/tool-names.ts` swaps `.` → `__` on the wire and restores it on the way
+back, in both adapters, at all three points a name crosses the boundary (the tool list, tool
+calls echoed back in assistant turns, tool calls received in responses). `gateway.ts` and the
+capability registry never see anything but the dotted names.
+
+**The transferable lesson:** the abstraction boundary was drawn around message *shape* and
+missed *identifier constraints*, which are a second, independent thing every provider
+enforces. Anything else SYNTRA names on its own terms and hands to a provider — future tool
+names, model aliases, stop sequences — should be checked against that provider's pattern
+rules before it is assumed to pass through untouched.
+
+---
+
+## What's left
+
+1. ~~Add `AI_PROVIDER` / `OPENROUTER_API_KEY` to `.env.local` and Vercel.~~ **Done.**
+2. ~~Run a real chat through `/portal/ai`, including a tool-using request.~~ **Done, and it found the §9 defect.** All three agents verified live via real tool calls.
+3. **Still open: the budget `hard_stop` refusal.** Turn it on, exceed the budget, confirm the request is refused rather than sent. This is the one governance guarantee never exercised against a live provider — cost control is only real if it has actually stopped something.
+4. **Still open: the approval queue.** Ask an agent for something irreversible (`email.send`, `notify.slack`) and confirm it queues for approval rather than executing. The three verified tool calls were all read-only, so the write path is still untested end to end.
+
+When switching to native Anthropic later: set `ANTHROPIC_API_KEY`, remove `AI_PROVIDER` (or set it to `anthropic`). The §9 fix applies to both adapters, so the tool names will not need revisiting.
