@@ -63,7 +63,12 @@ export async function POST(req: NextRequest) {
 
   let workflows: N8nWorkflow[]
   try {
-    workflows = (await n8n.workflows()).data ?? []
+    const all = (await n8n.workflows()).data ?? []
+    // This n8n account holds many workflows that have nothing to do with
+    // SYNTRA (client demos, personal projects, scratch/temp work). Only ones
+    // explicitly tagged "syntra" are ours — without this filter, a global
+    // sync inserts every workflow in the account into N8N_ORG_ID's automations.
+    workflows = all.filter((wf) => wf.tags?.some((t) => t.name.toLowerCase() === "syntra"))
   } catch (err) {
     // Stopped VM, cold start timeout or missing N8N_* config. 503 tells the
     // GitHub Action this is "unavailable", not a failure. Details stay server-side.
