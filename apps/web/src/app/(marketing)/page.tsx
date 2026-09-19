@@ -63,24 +63,28 @@ export default function HomePage() {
   return (
     <MarketingShell>
       {/* Hero */}
-      <section className="relative z-10 px-6 pb-16 pt-20 md:pt-24">
-        {/* The page's lighting lives in SiteBackground. The hero adds one
-            local glow on top so the interface preview stays the brightest
-            point on the page, which is the whole idea of the composition. */}
-        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2 lg:gap-12">
+      {/* On a desktop screen the hero fills the viewport below the 4rem nav
+          and the commitments sit at the bottom of it, so all three are visible
+          on load rather than a scroll away. min-height, not height: on a short
+          window the content still grows and scrolls instead of overlapping.
+
+          The page's lighting lives in SiteBackground. The hero adds one local
+          glow so the interface preview stays the brightest point on the page. */}
+      <section className="relative z-10 flex flex-col px-6 pb-10 pt-12 md:pt-14 lg:min-h-[calc(100vh-4rem)]">
+        <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 lg:grid-cols-2">
           <div>
             <span className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-400">
               The AI automation platform
             </span>
 
-            <AnimatedHeadline className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-text-primary md:text-6xl" />
+            <AnimatedHeadline className="mt-5 text-5xl font-bold leading-[1.04] tracking-tight text-text-primary md:text-6xl" />
 
-            <p className="mt-6 max-w-md text-lg leading-relaxed text-text-secondary">
+            <p className="mt-5 max-w-md text-lg leading-relaxed text-text-secondary">
               SYNTRA runs your website, marketing and daily operations using AI and automation — so
               you can focus on what really matters: growth.
             </p>
 
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
+            <div className="mt-7 flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/audit"
                 className="flex h-11 items-center justify-center rounded-lg bg-cyan-500 px-8 text-base font-semibold text-bg-base shadow-glow transition-colors hover:bg-cyan-400"
@@ -110,7 +114,7 @@ export default function HomePage() {
         </div>
 
         {/* Commitments */}
-        <div className="mx-auto mt-20 grid max-w-6xl gap-8 border-t border-border-subtle pt-10 sm:grid-cols-3 sm:gap-0">
+        <div className="mx-auto mt-10 grid w-full max-w-6xl shrink-0 gap-6 border-t border-border-subtle pt-7 sm:grid-cols-3 sm:gap-0">
           {COMMITMENTS.map((c, i) => (
             <div
               key={c.label}
