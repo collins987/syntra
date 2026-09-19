@@ -77,10 +77,10 @@ export default async function WebsitesPage() {
               return (
                 <div
                   key={site.id}
-                  className="flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-5 transition-all hover:border-border"
+                  className="flex flex-col rounded-xl border border-border-subtle bg-bg-surface p-5 transition-all hover:border-border"
                 >
                   <div className="mb-4 flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-surface">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-elevated">
                       <Globe className="h-4 w-4 text-text-muted" />
                     </div>
                     <div className="min-w-0 flex-1">

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { ManageSubscriptionButton } from "./_components/manage-button"
+import { PageShell, PageHeader, PageBody, Panel } from "@/components/portal/primitives"
 
 export const metadata: Metadata = { title: "Billing" }
 
@@ -55,29 +56,25 @@ export default async function BillingPage() {
   }
 
   return (
-    <div className="animate-fade-in p-8">
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-text-primary">Billing</h1>
-          <p className="mt-1 text-sm text-text-muted">Subscription, invoices, and usage.</p>
-        </div>
-        {!subscription && (
-          <Link
-            href="/pricing"
-            className="flex h-9 items-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
-          >
-            Upgrade plan →
-          </Link>
-        )}
-      </div>
-
+    <PageShell>
+      <PageHeader
+        title="Billing"
+        subtitle="Subscription, invoices, and usage."
+        actions={
+          !subscription && (
+            <Link
+              href="/pricing"
+              className="flex h-9 items-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base shadow-glow-sm hover:bg-cyan-400 transition-colors"
+            >
+              Upgrade plan →
+            </Link>
+          )
+        }
+      />
+      <PageBody>
       {/* Current subscription */}
-      <div className="mb-6 rounded-xl border border-border-subtle bg-bg-elevated">
-        <div className="border-b border-border-subtle px-6 py-4">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-            Current Plan
-          </span>
-        </div>
+      <div className="mb-6">
+      <Panel title="Current Plan">
         <div className="px-6 py-5">
           {subscription ? (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -131,15 +128,11 @@ export default async function BillingPage() {
             </div>
           )}
         </div>
+      </Panel>
       </div>
 
       {/* Invoice history */}
-      <div className="rounded-xl border border-border-subtle bg-bg-elevated">
-        <div className="border-b border-border-subtle px-6 py-4">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-            Invoice History
-          </span>
-        </div>
+      <Panel title="Invoice History">
         {invoices.length > 0 ? (
           <div className="divide-y divide-border-subtle/50">
             {invoices.map((inv) => (
@@ -184,7 +177,8 @@ export default async function BillingPage() {
             <p className="text-sm text-text-disabled">No invoices yet.</p>
           </div>
         )}
-      </div>
-    </div>
+      </Panel>
+      </PageBody>
+    </PageShell>
   )
 }

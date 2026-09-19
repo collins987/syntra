@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { Activity } from "lucide-react"
+import { PageShell, PageHeader, PageBody, Panel, EmptyState } from "@/components/portal/primitives"
 
 export const metadata: Metadata = { title: "Activity" }
 
@@ -67,54 +68,42 @@ export default async function ActivityPage() {
   const rows = logs ?? []
 
   return (
-    <div className="animate-fade-in p-8">
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-text-primary">Activity</h1>
-        <p className="mt-1 text-sm text-text-muted">Audit log of actions taken in your organization.</p>
-      </div>
-
-      <div className="rounded-xl border border-border-subtle bg-bg-elevated">
-        <div className="border-b border-border-subtle px-6 py-4 flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-            Recent Events
-          </span>
-          <span className="text-xs text-text-disabled">{rows.length} entries</span>
-        </div>
-
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-subtle bg-bg-surface">
-              <Activity className="h-5 w-5 text-text-disabled" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text-secondary">No activity yet</p>
-              <p className="mt-0.5 text-xs text-text-disabled max-w-xs">
-                Events like automation runs, team changes and billing updates will appear here.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-border-subtle/50">
-            {rows.map((log) => (
-              <div key={log.id} className="flex items-start justify-between gap-6 px-6 py-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-cyan-500/60" />
-                  <div>
-                    <p className="text-sm text-text-primary">
-                      {ACTION_LABELS[log.action] ?? log.action.replace(/_/g, " ")}
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-disabled">
-                      {log.resource_type}{log.resource_id ? ` · ${log.resource_id.slice(0, 8)}…` : ""}
-                      {log.ip_address ? ` · ${log.ip_address}` : ""}
-                    </p>
+    <PageShell>
+      <PageHeader title="Activity" subtitle="Audit log of actions taken in your organization." />
+      <PageBody>
+        <Panel
+          title="Recent Events"
+          actions={<span className="text-xs text-text-disabled">{rows.length} entries</span>}
+        >
+          {rows.length === 0 ? (
+            <EmptyState
+              icon={Activity}
+              title="No activity yet"
+              body="Events like automation runs, team changes and billing updates will appear here."
+            />
+          ) : (
+            <div className="divide-y divide-border-subtle/50">
+              {rows.map((log) => (
+                <div key={log.id} className="flex items-start justify-between gap-6 px-6 py-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-cyan-500/60" />
+                    <div>
+                      <p className="text-sm text-text-primary">
+                        {ACTION_LABELS[log.action] ?? log.action.replace(/_/g, " ")}
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-disabled">
+                        {log.resource_type}{log.resource_id ? ` · ${log.resource_id.slice(0, 8)}…` : ""}
+                        {log.ip_address ? ` · ${log.ip_address}` : ""}
+                      </p>
+                    </div>
                   </div>
+                  <span className="shrink-0 text-xs text-text-disabled">{formatTs(log.created_at)}</span>
                 </div>
-                <span className="shrink-0 text-xs text-text-disabled">{formatTs(log.created_at)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </PageBody>
+    </PageShell>
   )
 }

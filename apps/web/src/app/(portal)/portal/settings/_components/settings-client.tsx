@@ -114,7 +114,7 @@ function ProfileTab({ user }: { user: UserData }) {
         <p className="mt-0.5 text-sm text-text-muted">Your display name across the platform.</p>
       </div>
       {banner && <Banner {...banner} />}
-      <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-elevated px-6 py-5">
+      <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-surface px-6 py-5">
         <div className="space-y-1.5">
           <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Display name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className={input} />
@@ -168,7 +168,7 @@ function SecurityTab() {
         <p className="mt-0.5 text-sm text-text-muted">Change your account password.</p>
       </div>
       {banner && <Banner {...banner} />}
-      <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-elevated px-6 py-5">
+      <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-surface px-6 py-5">
         <div className="space-y-1.5">
           <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">New password</label>
           <div className="relative">
@@ -261,7 +261,7 @@ function TeamTab({ members: init, invites: initInv, role }: { members: Member[];
       </div>
       {banner && <Banner {...banner} />}
 
-      <div className="rounded-xl border border-border-subtle bg-bg-elevated divide-y divide-border-subtle/50">
+      <div className="rounded-xl border border-border-subtle bg-bg-surface divide-y divide-border-subtle/50">
         {members.map((m) => (
           <div key={m.id} className="flex items-center justify-between px-5 py-3.5">
             <div className="flex items-center gap-3">
@@ -293,7 +293,7 @@ function TeamTab({ members: init, invites: initInv, role }: { members: Member[];
       {invites.length > 0 && (
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-text-muted">Pending</p>
-          <div className="rounded-xl border border-border-subtle bg-bg-elevated divide-y divide-border-subtle/50">
+          <div className="rounded-xl border border-border-subtle bg-bg-surface divide-y divide-border-subtle/50">
             {invites.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between px-5 py-3">
                 <div>
@@ -312,7 +312,7 @@ function TeamTab({ members: init, invites: initInv, role }: { members: Member[];
       {isAdmin && (
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-text-muted">Invite member</p>
-          <div className="rounded-xl border border-border-subtle bg-bg-elevated px-5 py-4 space-y-3">
+          <div className="rounded-xl border border-border-subtle bg-bg-surface px-5 py-4 space-y-3">
             <div className="flex gap-3">
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void invite()} placeholder="colleague@company.com" className={`${input} flex-1`} />
               <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} className="rounded-lg border border-border-subtle bg-bg-elevated px-3 text-sm text-text-primary focus:border-cyan-500 focus:outline-none">
@@ -361,7 +361,7 @@ function OrgTab({ org, role }: { org: OrgData; role: string }) {
         <p className="mt-0.5 text-sm text-text-muted">Manage your organization settings.</p>
       </div>
       {banner && <Banner {...banner} />}
-      <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-elevated px-6 py-5">
+      <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-surface px-6 py-5">
         <div className="space-y-1.5">
           <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Organization name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} className={`${input} ${!isAdmin ? "cursor-not-allowed opacity-50" : ""}`} />

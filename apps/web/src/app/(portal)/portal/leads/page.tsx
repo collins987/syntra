@@ -68,7 +68,7 @@ export default async function LeadsPage() {
         {leads.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="rounded-xl border border-border-subtle bg-bg-elevated">
+          <div className="rounded-xl border border-border-subtle bg-bg-surface">
             <div className="grid grid-cols-[1fr_1fr_80px_64px_100px] gap-4 border-b border-border-subtle/70 px-6 py-3">
               {["Lead", "Company", "Source", "Tier", "Status"].map((h) => (
                 <span
@@ -87,7 +87,7 @@ export default async function LeadsPage() {
                 return (
                   <div
                     key={lead.id}
-                    className="grid grid-cols-[1fr_1fr_80px_64px_100px] items-center gap-4 px-6 py-3.5 transition-colors hover:bg-bg-surface/60"
+                    className="grid grid-cols-[1fr_1fr_80px_64px_100px] items-center gap-4 px-6 py-3.5 transition-colors hover:bg-bg-elevated/60"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-text-primary">

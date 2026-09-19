@@ -76,11 +76,15 @@ export function StatCard({
           : "text-text-primary"
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5">
+    // bg-bg-surface, not bg-bg-elevated: the dashboard rebuild established
+    // surface as the top-level card tone and elevated for what sits inside
+    // one (inputs, icon badges, hover states) — this card used the older
+    // convention and looked a shade off next to the new dashboard.
+    <div className="rounded-xl border border-border-subtle bg-bg-surface p-5">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
         {label}
       </p>
-      <p className={`mt-2 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
+      <p className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
       {hint && <p className="mt-1 text-xs text-text-muted">{hint}</p>}
     </div>
   )
@@ -98,7 +102,8 @@ export function Panel({
   actions?: ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-border-subtle bg-bg-elevated">
+    // Same bg-bg-surface rule as StatCard above.
+    <div className="rounded-xl border border-border-subtle bg-bg-surface">
       {(title || actions) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-6 py-4">
           <div>
