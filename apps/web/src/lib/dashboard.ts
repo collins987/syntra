@@ -74,6 +74,45 @@ export interface AgentStat {
   lastActivity: string | null
 }
 
+/**
+ * One row per product in the sidebar's Services group. Deliberately data,
+ * not display copy — icon choice, wording and the "Live" badge threshold
+ * belong to the component, not this file.
+ */
+export interface ServiceOverview {
+  sites: { total: number; live: number }
+  flow: { total: number; active: number; successRate: number | null }
+  /** No campaigns table exists yet — this can only ever be false. */
+  marketing: { connected: boolean }
+  leadIntelligence: { total: number }
+  aiAgents: { total: number; activeTasks: number }
+  os: { active: boolean }
+}
+
+export interface RecentLead {
+  id: string
+  name: string | null
+  company: string | null
+  score: number
+  tier: string | null
+  status: string
+  source: string | null
+  createdAt: string
+}
+
+export interface ModelCost {
+  model: string
+  costUsd: number
+}
+
+export interface AiCostSummary {
+  /** Current period only, sorted highest spend first. */
+  byModel: ModelCost[]
+  totalCostUsd: number
+  /** null when no budget row exists yet — render "Not set", not "$0 / $0". */
+  budget: { limitUsd: number; spentUsd: number; alertAtPercent: number } | null
+}
+
 export interface DashboardData {
   orgId: string
   period: DashboardPeriod
@@ -82,6 +121,11 @@ export interface DashboardData {
   activity: ActivityRow[]
   agents: AgentStat[]
   automations: Automation[]
+  services: ServiceOverview
+  recentLeads: RecentLead[]
+  aiCost: AiCostSummary
+  /** null until a plan is chosen. Drives whether the OS upsell banner shows. */
+  plan: string | null
   hasAnyData: boolean
 }
 
@@ -177,6 +221,10 @@ export async function getDashboardData(
     aiRequestsRes,
     leadsRes,
     invoicesRes,
+    websitesRes,
+    recentLeadsRes,
+    subscriptionRes,
+    budgetRes,
   ] = (await Promise.all([
     db.from("automations").select("*").eq("org_id", org.org_id)
       .order("created_at", { ascending: false }),
@@ -188,7 +236,7 @@ export async function getDashboardData(
       .limit(200),
 
     db.from("ai_requests")
-      .select("id, function_name, status, input_tokens, output_tokens, created_at")
+      .select("id, function_name, status, model, cost_usd, input_tokens, output_tokens, created_at")
       .eq("org_id", org.org_id)
       .gte("created_at", sinceIso),
 
@@ -200,12 +248,45 @@ export async function getDashboardData(
       .eq("org_id", org.org_id)
       .eq("status", "paid")
       .gte("created_at", sinceIso),
+
+    db.from("websites").select("id, status").eq("org_id", org.org_id),
+
+    // Latest leads for display, independent of the metrics window above —
+    // a client on a 7-day view should still see their last 5 leads even if
+    // all of them arrived 8 days ago.
+    db.from("leads")
+      .select("id, name, company, score, tier, status, source, created_at")
+      .eq("org_id", org.org_id)
+      .order("created_at", { ascending: false })
+      .limit(5),
+
+    db.from("subscriptions").select("plan, status").eq("org_id", org.org_id)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+
+    db.from("ai_usage_budgets")
+      .select("monthly_limit_usd, current_spend_usd, alert_at_percent")
+      .eq("org_id", org.org_id).maybeSingle(),
   ])) as [
     { data: Automation[] | null },
     { data: Array<{ id: string; automation_id: string; status: WorkflowExecutionStatus; started_at: string; duration_ms: number | null; error: string | null }> | null },
-    { data: Array<{ id: string; function_name: string; status: string; input_tokens: number | null; output_tokens: number | null; created_at: string }> | null },
+    { data: Array<{ id: string; function_name: string; status: string; model: string; cost_usd: number; input_tokens: number | null; output_tokens: number | null; created_at: string }> | null },
     { data: Array<{ id: string; status: string; created_at: string }> | null },
     { data: Array<{ id: string; amount_cents: number; currency: string; status: string; created_at: string }> | null },
+    { data: Array<{ id: string; status: string }> | null },
+    {
+      data: Array<{
+        id: string
+        name: string | null
+        company: string | null
+        score: number
+        tier: string | null
+        status: string
+        source: string | null
+        created_at: string
+      }> | null
+    },
+    { data: { plan: string; status: string } | null },
+    { data: { monthly_limit_usd: number; current_spend_usd: number; alert_at_percent: number } | null },
   ]
 
   const automations = automationsRes.data ?? []
@@ -213,6 +294,7 @@ export async function getDashboardData(
   const aiRequests = aiRequestsRes.data ?? []
   const leads = leadsRes.data ?? []
   const invoices = invoicesRes.data ?? []
+  const websites = websitesRes.data ?? []
 
   // ── Metrics ────────────────────────────────────────────────────────────────
   const finished = executions.filter((e) => e.status === "completed" || e.status === "failed")
@@ -288,6 +370,64 @@ export async function getDashboardData(
     }
   })
 
+  // ── Service overview ──────────────────────────────────────────────────────
+  const services: ServiceOverview = {
+    sites: {
+      total: websites.length,
+      live: websites.filter((w) => w.status === "live").length,
+    },
+    flow: {
+      total: automations.length,
+      active: automations.filter((a) => a.status === "active").length,
+      successRate,
+    },
+    // No campaigns table exists yet. Rendered as "not connected" rather than
+    // inventing a metric — see the marketing-page rule about not putting
+    // numbers on screen that nothing backs.
+    marketing: { connected: false },
+    leadIntelligence: { total: leads.length },
+    aiAgents: {
+      total: agents.length,
+      activeTasks: agents.reduce((sum, a) => sum + a.tasks, 0),
+    },
+    os: { active: subscriptionRes.data?.plan === "os" },
+  }
+
+  // ── Recent leads ───────────────────────────────────────────────────────────
+  const recentLeads: RecentLead[] = (recentLeadsRes.data ?? []).map((l) => ({
+    id: l.id,
+    name: l.name,
+    company: l.company,
+    score: l.score,
+    tier: l.tier,
+    status: l.status,
+    source: l.source,
+    createdAt: l.created_at,
+  }))
+
+  // ── AI cost ────────────────────────────────────────────────────────────────
+  const currentPeriodRequests = aiRequests.filter((r) => {
+    const t = new Date(r.created_at).getTime()
+    return t >= periodStart && t < now
+  })
+  const costByModel = new Map<string, number>()
+  for (const r of currentPeriodRequests) {
+    costByModel.set(r.model, (costByModel.get(r.model) ?? 0) + (r.cost_usd ?? 0))
+  }
+  const aiCost: AiCostSummary = {
+    byModel: [...costByModel.entries()]
+      .map(([model, costUsd]) => ({ model, costUsd }))
+      .sort((a, b) => b.costUsd - a.costUsd),
+    totalCostUsd: currentPeriodRequests.reduce((sum, r) => sum + (r.cost_usd ?? 0), 0),
+    budget: budgetRes.data
+      ? {
+          limitUsd: budgetRes.data.monthly_limit_usd,
+          spentUsd: budgetRes.data.current_spend_usd,
+          alertAtPercent: budgetRes.data.alert_at_percent,
+        }
+      : null,
+  }
+
   return {
     orgId: org.org_id,
     period,
@@ -296,6 +436,10 @@ export async function getDashboardData(
     activity,
     agents,
     automations,
+    services,
+    recentLeads,
+    aiCost,
+    plan: subscriptionRes.data?.plan ?? null,
     hasAnyData:
       automations.length > 0 ||
       executions.length > 0 ||

@@ -7,9 +7,12 @@ import { DEFAULT_PERIOD, getDashboardData, isDashboardPeriod } from "@/lib/dashb
 import { KpiRow } from "./_components/kpi-row"
 import { PerformanceChart } from "./_components/performance-chart"
 import { PeriodPicker } from "./_components/period-picker"
+import { ServiceOverview } from "./_components/service-overview"
 import { LiveActivity } from "./_components/live-activity"
-import { AutomationNetwork } from "./_components/automation-network"
+import { RecentLeads } from "./_components/recent-leads"
 import { AIAgents } from "./_components/ai-agents"
+import { AiCost } from "./_components/ai-cost"
+import { OsBanner } from "./_components/os-banner"
 
 export const metadata: Metadata = { title: "Dashboard" }
 
@@ -100,16 +103,27 @@ export default async function DashboardPage({
         <KpiRow metrics={data.metrics} period={data.period} />
       </div>
 
-      {/* ── Performance + agents ── */}
+      {/* ── Performance + service overview ── */}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <PerformanceChart series={data.series} periodDays={data.period} />
+
+        <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
+          <ServiceOverview services={data.services} />
+        </div>
+      </div>
+
+      {/* ── Recent leads + AI agents ── */}
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+        <div className="min-w-0 overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
+          <RecentLeads leads={data.recentLeads} />
+        </div>
 
         <div className="rounded-xl border border-border-subtle bg-bg-surface">
           <AIAgents agents={data.agents} />
         </div>
       </div>
 
-      {/* ── Activity + automation network ── */}
+      {/* ── Activity + AI cost ── */}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
         <div className="min-w-0 overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
           <LiveActivity
@@ -120,9 +134,16 @@ export default async function DashboardPage({
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
-          <AutomationNetwork automations={data.automations} />
+          <AiCost cost={data.aiCost} />
         </div>
       </div>
+
+      {/* ── OS upsell — hidden once the org is already on it ── */}
+      {data.plan !== "os" && (
+        <div className="mt-4">
+          <OsBanner />
+        </div>
+      )}
     </div>
   )
 }

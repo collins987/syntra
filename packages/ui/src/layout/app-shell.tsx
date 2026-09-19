@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Bell, Search } from "lucide-react"
 import { Sidebar } from "./sidebar"
+import { PortalBackground } from "./portal-background"
 import { cn } from "../lib/utils"
 
 interface AppShellProps {
@@ -23,12 +24,14 @@ export function AppShell({ children, user, orgName, unreadCount }: AppShellProps
   const hasUnread = typeof unreadCount === "number" && unreadCount > 0
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-base">
+    <div className="relative flex h-screen overflow-hidden bg-bg-base">
+      <PortalBackground />
+
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="relative flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4">
+        <header className="relative flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4">
           <div className="flex h-8 w-full max-w-sm items-center gap-2 rounded-lg border border-border-subtle bg-bg-base px-3 text-xs text-text-disabled transition-colors focus-within:border-border">
             <Search className="h-3.5 w-3.5 shrink-0" />
             <span className="flex-1 truncate">Search anything...</span>
