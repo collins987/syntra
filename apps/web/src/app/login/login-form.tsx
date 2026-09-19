@@ -4,6 +4,19 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
+/**
+ * Only same-origin relative paths. A bare "/" prefix is not enough: "//evil.com"
+ * and "/\evil.com" are both read as protocol-relative URLs by browsers, which
+ * would turn the post-login redirect into an open redirect.
+ */
+function safeRedirect(target: string | null): string {
+  if (!target) return "/portal/dashboard"
+  if (!target.startsWith("/") || target.startsWith("//") || target.startsWith("/\\")) {
+    return "/portal/dashboard"
+  }
+  return target
+}
+
 export function LoginForm() {
   const router = useRouter()
   const [email, setEmail] = useState("")
@@ -25,7 +38,10 @@ export function LoginForm() {
       return
     }
 
-    router.push("/portal/dashboard")
+    // Read at submit time rather than via useSearchParams: this page renders
+    // statically, and the hook would force a Suspense boundary around the form.
+    const target = new URLSearchParams(window.location.search).get("redirectTo")
+    router.push(safeRedirect(target))
     router.refresh()
   }
 

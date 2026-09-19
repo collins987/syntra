@@ -91,6 +91,15 @@ export async function POST(req: NextRequest) {
       }),
     })
 
+    await db.from("audit_logs").insert({
+      org_id: org.org_id,
+      user_id: user.id,
+      action: "team.invite_sent",
+      resource_type: "team_invite",
+      resource_id: invite["id"],
+      metadata: { email: normalEmail, role },
+    })
+
     return NextResponse.json({ ok: true, invite })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create invitation"
@@ -110,11 +119,25 @@ export async function DELETE(req: NextRequest) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (createServiceClient() as any)
+    const db = createServiceClient() as any
+
+    const { data: invite } = (await db
       .from("team_invites")
-      .delete()
+      .select("email, role")
       .eq("id", id)
       .eq("org_id", org.org_id)
+      .maybeSingle()) as { data: { email: string; role: string } | null }
+
+    await db.from("team_invites").delete().eq("id", id).eq("org_id", org.org_id)
+
+    await db.from("audit_logs").insert({
+      org_id: org.org_id,
+      user_id: org.userId,
+      action: "team.invite_cancelled",
+      resource_type: "team_invite",
+      resource_id: id,
+      metadata: { email: invite?.email ?? null, role: invite?.role ?? null },
+    })
 
     return NextResponse.json({ ok: true })
   } catch {

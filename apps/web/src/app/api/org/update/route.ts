@@ -15,12 +15,31 @@ export async function PATCH(req: NextRequest) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (createServiceClient() as any)
+    const db = createServiceClient() as any
+
+    // Read the old name first: "renamed to X" is far less use when investigating
+    // than "renamed from X to Y".
+    const { data: before } = (await db
+      .from("organizations")
+      .select("name")
+      .eq("id", org.org_id)
+      .maybeSingle()) as { data: { name: string } | null }
+
+    const { error } = await db
       .from("organizations")
       .update({ name: name.trim(), updated_at: new Date().toISOString() })
       .eq("id", org.org_id)
 
     if (error) throw error
+
+    await db.from("audit_logs").insert({
+      org_id: org.org_id,
+      user_id: org.userId,
+      action: "org.updated",
+      resource_type: "organization",
+      resource_id: org.org_id,
+      metadata: { from: before?.name ?? null, to: name.trim() },
+    })
 
     return NextResponse.json({ ok: true })
   } catch (err) {

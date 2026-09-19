@@ -56,8 +56,9 @@ export default async function InvitePage({ params }: Props) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    // Not logged in: redirect to login preserving the invite token
-    redirect(`/login?redirect=/invite/${token}`)
+    // Not logged in: redirect to login preserving the invite token. The param
+    // name must match what middleware.ts sets and login-form.tsx reads.
+    redirect(`/login?redirectTo=${encodeURIComponent(`/invite/${token}`)}`)
   }
 
   // Wrong email address logged in

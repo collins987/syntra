@@ -63,7 +63,11 @@ function scoreAuditLead({ revenue, industry }: { revenue: string; industry: stri
     "over-1m": 50,
   }
   score += revenueScores[revenue] ?? 20
-  const highValue = ["ecommerce", "saas", "agency", "real-estate", "finance"]
-  if (highValue.includes(industry.toLowerCase())) score += 10
+  // The form sends a slug ("e-commerce", "real-estate"). Compare with separators
+  // stripped: "ecommerce" here never matched the "e-commerce" being sent, so
+  // e-commerce leads silently lost the bonus for months.
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "")
+  const highValue = ["ecommerce", "saas", "agency", "realestate", "finance"]
+  if (highValue.includes(normalize(industry))) score += 10
   return Math.min(score, 100)
 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { stripe } from "@/lib/stripe"
 import { createServiceClient } from "@/lib/supabase/service"
+import { planFromStripePriceId } from "@/lib/pricing"
+import { recordLinkedPlan, refuseIfLinkedElsewhere } from "@/lib/billing-link"
 
 interface StripeSub {
   id: string
@@ -8,6 +11,21 @@ interface StripeSub {
   current_period_start: number
   current_period_end: number
   cancel_at: number | null
+}
+
+interface CheckoutSession {
+  id: string
+  mode: string
+  customer: string | { id: string } | null
+  subscription: string | { id: string } | null
+  metadata: Record<string, string> | null
+}
+
+interface StripeSubWithItems {
+  status: string
+  current_period_start: number
+  current_period_end: number
+  items: { data: Array<{ price: { id: string } }> }
 }
 
 interface StripeInvoice {
@@ -42,6 +60,78 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (event.type) {
+      // A customer who pays and closes the tab never reaches the success_url,
+      // so /api/stripe/link-subscription is never called and they end up with
+      // no subscription row at all. This is the same link, done server-side
+      // from a Stripe-signed event, and it keeps every guard the manual path
+      // has: the plan is resolved from the real price, and a subscription
+      // already attached to another org is never moved.
+      case "checkout.session.completed": {
+        const session = event.data.object as unknown as CheckoutSession
+        if (session.mode !== "subscription" || !session.subscription) break
+
+        // Set by our own /api/stripe/checkout. Without it there is no way to
+        // tell whose payment this is, and guessing would attach it to the wrong org.
+        const userId = session.metadata?.["user_id"]
+        if (!userId) break
+
+        const subId =
+          typeof session.subscription === "string" ? session.subscription : session.subscription.id
+
+        // subscriptions.org_id is NOT NULL, so a buyer who hasn't onboarded yet
+        // has nothing to attach to. Flag it rather than invent an organisation.
+        const { data: membership } = (await db
+          .from("organization_members")
+          .select("org_id")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()) as { data: { org_id: string } | null }
+
+        if (!membership) {
+          Sentry.captureMessage(
+            `[stripe-webhook] paid checkout ${session.id} for user ${userId} has no organisation yet — subscription ${subId} is unlinked`,
+            "warning"
+          )
+          break
+        }
+
+        const sub = (await stripe.subscriptions.retrieve(subId)) as unknown as StripeSubWithItems
+        const plan = planFromStripePriceId(sub.items.data[0]?.price?.id ?? "")
+        if (!plan) {
+          Sentry.captureMessage(
+            `[stripe-webhook] unrecognised price on subscription ${subId}`,
+            "error"
+          )
+          break
+        }
+
+        if (await refuseIfLinkedElsewhere("stripe_subscription_id", subId, membership.org_id)) break
+
+        await db.from("subscriptions").upsert(
+          {
+            org_id: membership.org_id,
+            stripe_subscription_id: subId,
+            stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
+            plan,
+            status: sub.status,
+            current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            metadata: { session_id: session.id, user_id: userId, linked_by: "webhook" },
+          },
+          { onConflict: "stripe_subscription_id" }
+        )
+
+        await recordLinkedPlan({
+          orgId: membership.org_id,
+          userId,
+          plan,
+          provider: "stripe",
+          reference: subId,
+        })
+        break
+      }
+
       case "customer.subscription.updated": {
         const sub = event.data.object as unknown as StripeSub
         await db.from("subscriptions").update({

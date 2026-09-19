@@ -38,6 +38,15 @@ export async function DELETE(req: NextRequest) {
 
     await db.from("organization_members").delete().eq("id", memberId)
 
+    await db.from("audit_logs").insert({
+      org_id: org.org_id,
+      user_id: org.userId,
+      action: "team.member_removed",
+      resource_type: "organization_member",
+      resource_id: memberId,
+      metadata: { removed_user_id: member.user_id },
+    })
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to remove member"
