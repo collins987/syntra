@@ -4,90 +4,9 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import {
-  LayoutDashboard,
-  Globe,
-  Zap,
-  Megaphone,
-  Bot,
-  Cpu,
-  BarChart3,
-  Building2,
-  Users,
-  FileText,
-  CreditCard,
-  Plug,
-  Activity,
-  Settings,
-  ShieldCheck,
-  Gauge,
-  LifeBuoy,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
+import { LifeBuoy, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "../lib/utils"
-
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ElementType
-  /** Shown under the label in the Services group, so each product reads as
-   *  what it does rather than as a bare noun. */
-  sub?: string
-}
-
-interface NavGroup {
-  group?: string
-  items: NavItem[]
-}
-
-// Services are named after the products a client actually buys, so the nav
-// mirrors the pricing page. Every route appears exactly once: the reference
-// design lists Leads and Automations under two different groups, which means
-// two sidebar rows going to the same page — the kind of thing that makes a nav
-// feel arbitrary. Each destination here has one home.
-const navigation: NavGroup[] = [
-  {
-    items: [
-      { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
-      { label: "Approvals", href: "/portal/approvals", icon: ShieldCheck },
-    ],
-  },
-  {
-    group: "Services",
-    items: [
-      { label: "Syntra Sites", href: "/portal/websites", icon: Globe, sub: "Website & SEO" },
-      { label: "Syntra Flow", href: "/portal/automations", icon: Zap, sub: "Automation & workflows" },
-      { label: "Syntra Marketing", href: "/portal/marketing", icon: Megaphone, sub: "Content & campaigns" },
-      { label: "Lead Intelligence", href: "/portal/leads", icon: Users, sub: "Scoring & CRM" },
-      { label: "AI Agents", href: "/portal/ai-agents", icon: Bot, sub: "Ava · Max · Leo" },
-    ],
-  },
-  {
-    group: "Intelligence",
-    items: [
-      { label: "AI Center", href: "/portal/ai", icon: Cpu },
-      { label: "AI Usage", href: "/portal/ai-usage", icon: Gauge },
-      { label: "Analytics", href: "/portal/analytics", icon: BarChart3 },
-    ],
-  },
-  {
-    group: "Business",
-    items: [
-      { label: "Clients", href: "/portal/clients", icon: Building2 },
-      { label: "Reports", href: "/portal/reports", icon: FileText },
-    ],
-  },
-  {
-    group: "Account",
-    items: [
-      { label: "Integrations",  href: "/portal/integrations", icon: Plug },
-      { label: "Activity Logs", href: "/portal/activity",     icon: Activity },
-      { label: "Billing",       href: "/portal/billing",      icon: CreditCard },
-      { label: "Settings",      href: "/portal/settings",     icon: Settings },
-    ],
-  },
-]
+import { navigation } from "./navigation"
 
 interface SidebarProps {
   collapsed: boolean
