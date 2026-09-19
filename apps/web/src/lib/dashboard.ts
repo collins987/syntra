@@ -1,14 +1,17 @@
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import type { Automation, WorkflowExecutionStatus } from "@syntra/db"
+import { DEFAULT_PERIOD, type DashboardPeriod } from "./dashboard-periods"
 
-export const DASHBOARD_PERIODS = [7, 30, 90] as const
-export type DashboardPeriod = (typeof DASHBOARD_PERIODS)[number]
-export const DEFAULT_PERIOD: DashboardPeriod = 30
-
-export function isDashboardPeriod(value: unknown): value is DashboardPeriod {
-  return DASHBOARD_PERIODS.includes(Number(value) as DashboardPeriod)
-}
+// Re-exported for server components (this file touches next/headers via
+// lib/supabase/server, so it can only ever run server-side). A "use client"
+// component must import period constants from ./dashboard-periods directly,
+// never from here — importing even one value from this module pulls its
+// entire graph, next/headers included, into the client bundle and fails the
+// production build. tsc and next lint both miss this; only next build catches
+// it. See period-picker.tsx.
+export { DASHBOARD_PERIODS, DEFAULT_PERIOD, isDashboardPeriod } from "./dashboard-periods"
+export type { DashboardPeriod } from "./dashboard-periods"
 
 export interface SparkPoint {
   v: number

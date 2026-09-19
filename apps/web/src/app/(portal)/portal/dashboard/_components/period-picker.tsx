@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { CalendarDays } from "lucide-react"
-import { DASHBOARD_PERIODS, type DashboardPeriod } from "@/lib/dashboard"
+import { DASHBOARD_PERIODS, type DashboardPeriod } from "@/lib/dashboard-periods"
 
 // The range is real: it goes into the URL, the server re-queries against it,
 // and every figure on the page — including each "vs. previous" delta — is
