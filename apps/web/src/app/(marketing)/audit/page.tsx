@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { CheckCircle, Zap, Globe, Bot, BarChart3, Mail, Users } from "lucide-react"
+import { SiteBackground } from "@/components/marketing/shell"
 
 const INDUSTRIES = [
   "E-commerce",
@@ -73,7 +74,7 @@ export default function AuditPage() {
 
   return (
     <div className="min-h-screen bg-bg-base">
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(30,41,53,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(30,41,53,0.25)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <SiteBackground />
 
       {/* Nav */}
       <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">

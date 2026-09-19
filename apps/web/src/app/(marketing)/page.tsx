@@ -63,31 +63,10 @@ export default function HomePage() {
   return (
     <MarketingShell>
       {/* Hero */}
-      <section className="relative isolate z-10 overflow-hidden px-6 pb-16 pt-20 md:pt-24">
-        {/* Lighting. `isolate` above keeps these layers inside the hero's own
-            stacking context, so -z-10 sits behind the copy but still above the
-            page's grid texture. All decorative, all aria-hidden. */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          {/* Deep navy settling into black */}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,#0A0E17_0%,#080A0F_55%,#06080E_100%)]" />
-
-          {/* Grid texture, faded out toward the centre so the panel has room to
-              breathe — keeps the technical feel without competing with it. */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(30,41,53,0.28)_1px,transparent_1px),linear-gradient(90deg,rgba(30,41,53,0.28)_1px,transparent_1px)] bg-[size:40px_40px] [-webkit-mask-image:radial-gradient(75%_65%_at_60%_45%,transparent_5%,black_85%)] [mask-image:radial-gradient(75%_65%_at_60%_45%,transparent_5%,black_85%)]" />
-
-          {/* The main glow, behind the dashboard */}
-          <div className="absolute inset-0 bg-[radial-gradient(58%_55%_at_70%_42%,rgba(0,229,255,0.15),transparent_72%)]" />
-          {/* A violet counterweight, high and to the side, for depth */}
-          <div className="absolute inset-0 bg-[radial-gradient(42%_42%_at_88%_12%,rgba(124,58,237,0.13),transparent_70%)]" />
-
-          {/* Diagonal light beams — two thin, one broad and soft */}
-          <div className="absolute -left-[8%] top-[22%] h-px w-[58%] rotate-[-17deg] bg-gradient-to-r from-transparent via-cyan-400/35 to-transparent blur-[1.5px]" />
-          <div className="absolute left-[12%] top-[68%] h-px w-[46%] rotate-[-17deg] bg-gradient-to-r from-transparent via-cyan-300/20 to-transparent blur-[1.5px]" />
-          <div className="absolute -top-[15%] right-[-6%] h-[130%] w-[26%] rotate-[14deg] bg-gradient-to-b from-cyan-500/[0.07] via-cyan-500/[0.03] to-transparent blur-3xl" />
-
-          {/* Vignette: edges stay dark and atmospheric */}
-          <div className="absolute inset-0 bg-[radial-gradient(115%_85%_at_55%_40%,transparent_50%,rgba(4,6,11,0.9)_100%)]" />
-        </div>
+      <section className="relative z-10 px-6 pb-16 pt-20 md:pt-24">
+        {/* The page's lighting lives in SiteBackground. The hero adds one
+            local glow on top so the interface preview stays the brightest
+            point on the page, which is the whole idea of the composition. */}
         <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2 lg:gap-12">
           <div>
             <span className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-400">
@@ -118,12 +97,13 @@ export default function HomePage() {
           </div>
 
           {/* Product illustration — decorative, see the component */}
-          <div className="relative lg:pl-4">
+          <div className="relative isolate lg:pl-4">
             {/* Contained glow so the panel reads as lit from within, rather
-                than sitting flat on the page. */}
+                than sitting flat on the page. `isolate` keeps the negative
+                z-index inside this wrapper. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-16 -z-10 animate-glow-pulse bg-[radial-gradient(closest-side,rgba(0,229,255,0.10),transparent_75%)] motion-reduce:animate-none"
+              className="pointer-events-none absolute -inset-16 -z-10 animate-glow-pulse bg-[radial-gradient(closest-side,rgba(0,229,255,0.12),transparent_75%)] motion-reduce:animate-none"
             />
             <HeroMockup />
           </div>

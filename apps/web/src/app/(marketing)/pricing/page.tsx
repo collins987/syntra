@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import { PLANS, CAPABILITIES } from "@/lib/pricing"
-import { MarketingFooter } from "@/components/marketing/shell"
+import { MarketingFooter, SiteBackground } from "@/components/marketing/shell"
 import { Check, CreditCard, Smartphone, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 type PayMethod = "card" | "mpesa"
@@ -177,7 +177,7 @@ function PricingContent() {
 
   return (
     <div className="min-h-screen bg-bg-base">
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(30,41,53,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(30,41,53,0.25)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <SiteBackground />
 
       {/* Nav */}
       <nav className="relative z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-base/80 px-6 backdrop-blur-sm">
