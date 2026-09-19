@@ -1,9 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk"
 import * as Sentry from "@sentry/nextjs"
 import { createServiceClient } from "@/lib/supabase/service"
 import { executeAction, logBlocked } from "@/lib/actions/gateway"
 import { getCapability } from "@/lib/actions/registry"
-import { MODELS, estimateCostUsd } from "./models"
+import { estimateCostUsd } from "./models"
+import { getModel, getProvider } from "./providers"
+import type { NormalizedMessage, NormalizedToolResult } from "./providers/types"
 import { AGENTS, isAgentKey, type AgentKey } from "./agents"
 import { TOOLS, executeReadTool } from "./tools"
 import {
@@ -14,8 +15,11 @@ import {
   type AgentRecord,
 } from "./policy"
 
-// The ONLY caller of the Anthropic SDK in this codebase. Enforced by the
-// no-restricted-imports rule in eslint.config.mjs.
+// The model-calling boundary. Only ./providers/anthropic.ts and its own SDK
+// import touch @anthropic-ai/sdk directly (enforced by no-restricted-imports in
+// eslint.config.mjs) — this file talks to whichever provider is active through
+// the normalized AIProvider interface in ./providers, never a native SDK shape.
+// See AI_PROVIDER_ABSTRACTION_PLAN.md.
 //
 // Everything a model request must pass through lives here: budget, rate limit,
 // model selection, tool grants, policy, cost accounting and logging.
@@ -49,12 +53,6 @@ export interface ChatResult {
   usage: { inputTokens: number; outputTokens: number; costUsd: number }
   /** Set when the request was refused before reaching the model. */
   refusal?: string
-}
-
-function client(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set")
-  return new Anthropic({ apiKey })
 }
 
 // ── Budget ───────────────────────────────────────────────────────────────────
@@ -231,8 +229,11 @@ export async function chat(params: {
     }))
 
   const system = await buildSystemPrompt(agent)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const convo: any[] = messages.map((m) => ({ role: m.role, content: m.content }))
+  const convo: NormalizedMessage[] = messages.map((m) =>
+    m.role === "user"
+      ? { role: "user", content: m.content }
+      : { role: "assistant", text: m.content, toolCalls: [] }
+  )
 
   const approvals: PendingApproval[] = []
   const actions: ExecutedAction[] = []
@@ -240,48 +241,36 @@ export async function chat(params: {
   let outputTokens = 0
   let finalText = ""
 
-  const model: string = MODELS.reasoning
+  const model = getModel()
+  const provider = getProvider()
   const startedAt = Date.now()
-  const anthropic = client()
 
   try {
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
-      const response = await anthropic.messages.create({
+      const response = await provider.chat({
         model,
-        max_tokens: MAX_OUTPUT_TOKENS,
         system,
         messages: convo,
-        ...(grantedTools.length ? { tools: grantedTools } : {}),
+        tools: grantedTools,
+        maxTokens: MAX_OUTPUT_TOKENS,
       })
 
-      inputTokens += response.usage?.input_tokens ?? 0
-      outputTokens += response.usage?.output_tokens ?? 0
+      inputTokens += response.usage.inputTokens
+      outputTokens += response.usage.outputTokens
 
-      const textParts = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === "text")
-        .map((b) => b.text)
-      if (textParts.length) finalText = textParts.join("\n\n")
+      if (response.text) finalText = response.text
 
-      const toolUses = response.content.filter(
-        (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
-      )
-      if (response.stop_reason !== "tool_use" || toolUses.length === 0) break
+      if (response.stopReason !== "tool_use" || response.toolCalls.length === 0) break
 
-      convo.push({ role: "assistant", content: response.content })
+      convo.push({ role: "assistant", text: response.text, toolCalls: response.toolCalls })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const toolResults: any[] = []
+      const toolResults: NormalizedToolResult[] = []
 
-      for (const use of toolUses) {
+      for (const use of response.toolCalls) {
         const auth = authorizeTool(agent, use.name)
 
         if (auth.decision === "deny") {
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: use.id,
-            is_error: true,
-            content: `Blocked: ${auth.reason}`,
-          })
+          toolResults.push({ toolCallId: use.id, isError: true, content: `Blocked: ${auth.reason}` })
           actions.push({ capability: use.name, status: "blocked", error: auth.reason })
           continue
         }
@@ -290,11 +279,7 @@ export async function chat(params: {
 
         if (!tool.capability) {
           const result = await executeReadTool(use.name, use.input, orgId)
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: use.id,
-            content: JSON.stringify(result),
-          })
+          toolResults.push({ toolCallId: use.id, isError: false, content: JSON.stringify(result) })
           continue
         }
 
@@ -304,9 +289,8 @@ export async function chat(params: {
           const validated = def?.validate(use.input)
           if (!validated?.ok) {
             toolResults.push({
-              type: "tool_result",
-              tool_use_id: use.id,
-              is_error: true,
+              toolCallId: use.id,
+              isError: true,
               content: `Invalid input: ${validated?.error ?? "unknown"}`,
             })
             continue
@@ -330,8 +314,8 @@ export async function chat(params: {
 
           approvals.push({ id: row?.id ?? "", capability, summary })
           toolResults.push({
-            type: "tool_result",
-            tool_use_id: use.id,
+            toolCallId: use.id,
+            isError: false,
             content: `Queued for the owner to approve: ${summary}. It has NOT happened yet.`,
           })
           continue
@@ -350,9 +334,8 @@ export async function chat(params: {
           ...(outcome.error ? { error: outcome.error } : {}),
         })
         toolResults.push({
-          type: "tool_result",
-          tool_use_id: use.id,
-          is_error: outcome.status !== "success",
+          toolCallId: use.id,
+          isError: outcome.status !== "success",
           content:
             outcome.status === "success"
               ? JSON.stringify(outcome.result ?? {})
@@ -360,7 +343,7 @@ export async function chat(params: {
         })
       }
 
-      convo.push({ role: "user", content: toolResults })
+      convo.push({ role: "tool_results", results: toolResults })
     }
 
     const costUsd = estimateCostUsd(model, inputTokens, outputTokens)

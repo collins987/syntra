@@ -23,6 +23,11 @@ const RATES: Record<string, Rate> = {
   "claude-sonnet-5": { inputPerMTok: 3, outputPerMTok: 15 },
   "claude-haiku-4-5-20251001": { inputPerMTok: 1, outputPerMTok: 5 },
   "claude-opus-5": { inputPerMTok: 15, outputPerMTok: 75 },
+  // OpenRouter's default model (AI_PROVIDER=openrouter, see lib/ai/providers) —
+  // its own pricing, not Anthropic's; includes OpenRouter's margin. Update if
+  // OPENROUTER_MODEL is overridden to something else, or accept the FALLBACK
+  // rate below as an estimate rather than an exact figure.
+  "anthropic/claude-sonnet-4.5": { inputPerMTok: 3, outputPerMTok: 15 },
 }
 
 const FALLBACK: Rate = { inputPerMTok: 3, outputPerMTok: 15 }

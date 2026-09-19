@@ -106,9 +106,9 @@ Do these first. Most failures here turn later tests into `BLOCKED`.
 | ENV-07 | P1 | Stripe products | Stripe Dashboard → Products | Sites $297, Flow $497, **Marketing $697**, OS $997, all monthly recurring. The price IDs match the Vercel env vars. | |
 | ENV-08 | P1 | Resend domain | Resend → Domains | `syntraco.tech` verified (SPF + DKIM green) | |
 | ENV-09 | P1 | DNS apex | `curl -sI https://syntraco.tech` | `308` → `https://www.syntraco.tech` | |
-| ENV-10 | P0 | `ANTHROPIC_API_KEY` set (local) | Check `.env.local` | **FAIL as of 2026-09-18** — the line is present but empty. Blocks every AI-\*, APR-\*, BUD-\* test below. | FAIL |
+| ENV-10 | P0 | `ANTHROPIC_API_KEY` is a real, valid Anthropic key | Check the value's prefix; test with a real chat call | **FAIL as of 2026-09-18** — updated from "empty" to a new, distinct failure: the value is now set but is an **OpenRouter**-format key (`sk-or-v1-...`), not Anthropic's (`sk-ant-...`). `lib/ai/gateway.ts` calls `new Anthropic({ apiKey })` with no `baseURL` override, so this will never authenticate. Get a real key from console.anthropic.com. Still blocks every AI-\*, APR-\*, BUD-\* test below. | FAIL |
 | ENV-11 | P0 | Upstash rate-limit keys set (local) | Check `.env.local` for `UPSTASH_REDIS_REST_URL` / `_TOKEN` | **FAIL as of 2026-09-18** — neither line exists. Blocks RL-01…11 (§8.2) — you will not see a real `429`. | FAIL |
-| ENV-10 | P2 | Internal org renamed | `select name from organizations where id='0bd49ad6-e2a6-4e53-85e3-566bb972965b';` | `SYNTRA Internal` | |
+| ENV-12 | P2 | Internal org renamed | `select name from organizations where id='0bd49ad6-e2a6-4e53-85e3-566bb972965b';` | `SYNTRA Internal` | |
 
 ---
 
@@ -362,7 +362,7 @@ The expected scores below come from the **actual code** (base 40 + revenue weigh
 | N8N-03 | P1 | Sync creates/updates | Create 2 workflows in n8n → click **Sync** on `/portal/automations` | Both appear; toggling one inactive in n8n and syncing again shows `paused`; no duplicates | |
 | N8N-04 | P1 | n8n down | Stop the VM → Sync | Graceful `{ synced: 0 }` message within ~15s; no crash | |
 | N8N-05 | P0 | Webhook fails closed (F-02) | With `N8N_WEBHOOK_SECRET` unset, POST any event | `503` "Webhook is not configured"; nothing written | |
-| N8N-06 | P0 | Webhook signature | `TS=$(date +%s); SIG=$(printf '%s' "$TS.$BODY" \| openssl dgst -sha256 -hmac "$SECRET" \| sed 's/^.* //')`, then POST with `x-syntra-timestamp: $TS` and `x-syntra-signature: sha256=$SIG`. Repeat with a wrong signature and with `TS` 10 minutes old. | Correct → `200` + execution row; wrong → `401`; stale → `401` | |
+| N8N-06 | P0 | Webhook signature | `TS=$(date +%s); SIG=$(printf '%s' "$TS.$BODY" \| openssl dgst -sha256 -hmac "$SECRET" \| sed 's/^.* //')`, then POST with `x-syntra-timestamp: $TS` and `x-syntra-signature: sha256=$SIG`. Repeat with a wrong signature and with `TS` 10 minutes old. | Correct → `200` + execution row; wrong → `401`; stale → `401` | **PASS (2026-09-18), via the real n8n integration workflow, not curl:** a stale (>5 min) timestamp correctly got `401 "Invalid signature"` (execution 1949); a fresh, correctly-signed request from the same workflow got `200 {"received":true,"status":"completed"}` (execution 1950-ish) and the automation's `last_run_at` updated. Wrong-signature case not separately isolated — worth a quick dedicated curl check later, but the stale-vs-valid distinction is the harder case and it's confirmed correct. |
 | N8N-07 | P0 | Failure alert | Make a real n8n workflow fail | Execution row `status` failed; automation status `error`; `last_run_at` updated; error email sent (EML-03) | |
 | N8N-08 | P1 | Malformed body | Signed but invalid JSON | `400`; nothing written | |
 | N8N-09 | P1 | GitHub Actions cron | GitHub → Actions → `n8n-sync` → Run workflow | Green. Scheduled runs appear every ~15 min. With the VM stopped, the run is still green (503/504 tolerated). | |
