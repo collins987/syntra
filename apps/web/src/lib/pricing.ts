@@ -31,9 +31,29 @@ export interface Plan {
   highlight?: boolean
 }
 
+/**
+ * Reads a whole-shilling price from the environment.
+ *
+ * The whole string must be digits. `parseInt` alone is not safe here: it stops
+ * at the first character it cannot read and returns what it got, so a value
+ * entered as "90,700" becomes 90 — a number that passes a finite-and-positive
+ * check while being wrong by three orders of magnitude, and gets shown to a
+ * customer as the price. Falling back to the known-good figure is always
+ * better than advertising a wrong one.
+ */
 function kes(envVar: string | undefined, fallback: number): number {
-  const parsed = parseInt(envVar ?? "", 10)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+  const raw = envVar?.trim()
+  if (!raw) return fallback
+
+  if (!/^\d+$/.test(raw)) {
+    console.warn(
+      `[pricing] Ignoring malformed KES price "${raw}" — expected digits only, e.g. 90700. Using ${fallback}.`
+    )
+    return fallback
+  }
+
+  const parsed = Number(raw)
+  return parsed > 0 ? parsed : fallback
 }
 
 export const PLANS: Plan[] = [
