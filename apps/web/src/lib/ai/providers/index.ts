@@ -30,7 +30,9 @@ export function getProvider(): AIProvider {
  */
 export function getModel(): string {
   if (activeProviderName() === "openrouter") {
-    return process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.5"
+    // `??` is wrong here: `OPENROUTER_MODEL=` in an env file is "", not
+    // undefined, which would send an empty model id to OpenRouter.
+    return process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4.5"
   }
   return MODELS.reasoning
 }

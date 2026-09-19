@@ -27,11 +27,16 @@ export async function getUserOrg(): Promise<UserOrg | null> {
   } = await supabase.auth.getUser()
   if (!user) return null
 
+  // Oldest membership wins. Without the limit, a user with two membership rows
+  // (accepting a team invite while already in an org) gets an error rather than
+  // a row, reads as "no organisation at all", and is bounced to onboarding.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = (await (supabase as any)
     .from("organization_members")
     .select("org_id, role")
     .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle()) as { data: { org_id: string; role: string } | null }
 
   if (!data) return null
