@@ -85,6 +85,10 @@ module.exports = {
         rise: "slideUp 0.5s ease-out backwards",
         drift: "drift 7s ease-in-out infinite",
         trace: "trace 3.5s linear infinite",
+        // Headline characters resolving into place. "backwards" matters: the
+        // stagger is done with animation-delay, and without it every character
+        // would flash at full opacity before its turn.
+        "letter-in": "letterIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards",
       },
       keyframes: {
         glowPulse: {
@@ -114,6 +118,10 @@ module.exports = {
         trace: {
           "0%": { backgroundPosition: "-60% 0" },
           "100%": { backgroundPosition: "160% 0" },
+        },
+        letterIn: {
+          from: { opacity: "0", transform: "translateY(0.4em)", filter: "blur(8px)" },
+          to: { opacity: "1", transform: "translateY(0)", filter: "blur(0)" },
         },
       },
     },
