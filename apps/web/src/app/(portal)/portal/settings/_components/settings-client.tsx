@@ -401,13 +401,17 @@ export function SettingsClient({ user, org, members, invites, role }: Props) {
     <PageShell>
       <PageHeader title="Settings" subtitle="Account, team and organization." />
       <PageBody>
-        <div className="flex gap-10">
-          <nav className="w-40 shrink-0 space-y-0.5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-10">
+          {/* A horizontal scrollable row below `sm` — the fixed w-40 side nav
+              this reverts to above `sm` left only ~170px for content (forms,
+              team rows) on a phone, which is what made every tab feel
+              compressed rather than just the nav itself. */}
+          <nav className="flex gap-1.5 overflow-x-auto pb-1 sm:w-40 sm:shrink-0 sm:flex-col sm:space-y-0.5 sm:overflow-visible sm:pb-0">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition sm:w-full ${
                   tab === t.id
                     ? "bg-cyan-500/10 text-cyan-400 font-medium"
                     : "text-text-muted hover:text-text-primary hover:bg-white/5"
