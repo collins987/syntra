@@ -118,16 +118,16 @@ async function addSpend(orgId: string, amountUsd: number, current: number): Prom
 
 // ── Prompt ───────────────────────────────────────────────────────────────────
 
-async function buildSystemPrompt(agent: AgentRecord): Promise<string> {
+async function buildSystemPrompt(agent: AgentRecord, userId: string): Promise<string> {
   const def = AGENTS[agent.agent_key]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
 
-  const { data: org } = await db
-    .from("organizations")
-    .select("name, industry, plan")
-    .eq("id", agent.org_id)
-    .maybeSingle()
+  const [{ data: org }, { data: userResult }] = await Promise.all([
+    db.from("organizations").select("name, industry, plan").eq("id", agent.org_id).maybeSingle(),
+    db.auth.admin.getUserById(userId),
+  ])
+  const requesterEmail: string | null = userResult?.user?.email ?? null
 
   const level = effectiveAutonomy(agent)
 
@@ -136,6 +136,9 @@ async function buildSystemPrompt(agent: AgentRecord): Promise<string> {
     "",
     `You work for ${org?.name ?? "this business"}${org?.industry ? `, a ${org.industry} business` : ""}.`,
     org?.plan ? `They are on the ${org.plan} plan.` : "",
+    requesterEmail
+      ? `The signed-in user you are talking to has the email address ${requesterEmail} — use it directly whenever they ask you to email "me" or "myself," never ask them for it.`
+      : "",
     "",
     `Your autonomy level is ${level}.`,
     level <= 1
@@ -231,7 +234,7 @@ export async function chat(params: {
       input_schema: t.input_schema,
     }))
 
-  const system = await buildSystemPrompt(agent)
+  const system = await buildSystemPrompt(agent, userId)
   const convo: NormalizedMessage[] = messages.map((m) =>
     m.role === "user"
       ? { role: "user", content: m.content }
