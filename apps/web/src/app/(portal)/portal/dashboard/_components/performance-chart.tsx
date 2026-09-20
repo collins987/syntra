@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, type DotItemDotProps } from "recharts"
 import type { DashboardSeries, SeriesPoint } from "@/lib/dashboard"
 
 type TabKey = "leads" | "revenue" | "aiTokens"
@@ -11,31 +12,38 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "aiTokens", label: "AI Usage" },
 ]
 
-const VIEW_W = 720
-const VIEW_H = 200
-const PAD_TOP = 12
-const PAD_BOTTOM = 22
-
 function formatDay(iso: string): string {
   const d = new Date(`${iso}T00:00:00`)
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
-function buildPath(points: SeriesPoint[], max: number): { line: string; area: string } {
-  if (points.length === 0) return { line: "", area: "" }
+function CustomTooltip({
+  active,
+  payload,
+  isCurrency,
+}: {
+  active?: boolean
+  payload?: Array<{ payload: SeriesPoint }>
+  isCurrency: boolean
+}) {
+  if (!active || !payload?.[0]) return null
+  const point = payload[0].payload
+  return (
+    <div className="rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 shadow-modal">
+      <p className="text-[10px] text-text-disabled">{formatDay(point.date)}</p>
+      <p className="font-mono text-xs font-semibold tabular-nums text-text-primary">
+        {isCurrency ? `$${point.v.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : point.v.toLocaleString()}
+      </p>
+    </div>
+  )
+}
 
-  const usableH = VIEW_H - PAD_TOP - PAD_BOTTOM
-  const stepX = points.length > 1 ? VIEW_W / (points.length - 1) : 0
-
-  const coords = points.map((p, i) => {
-    const x = points.length > 1 ? i * stepX : VIEW_W / 2
-    const y = PAD_TOP + usableH - (max > 0 ? (p.v / max) * usableH : 0)
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  })
-
-  const line = `M${coords.join(" L")}`
-  const area = `${line} L${VIEW_W},${PAD_TOP + usableH} L0,${PAD_TOP + usableH} Z`
-  return { line, area }
+/** A static marker on the latest point only — Recharts' `dot` render prop
+ *  fires once per point, so every point but the last renders invisibly. */
+function EndpointDot({ cx, cy, index, points }: DotItemDotProps) {
+  const isLast = index === points.length - 1
+  if (!isLast || cx === undefined || cy === undefined) return <circle cx={cx} cy={cy} r={0} fill="none" />
+  return <circle cx={cx} cy={cy} r={3} fill="#00E5FF" stroke="none" />
 }
 
 export function PerformanceChart({
@@ -47,15 +55,9 @@ export function PerformanceChart({
 }) {
   const [tab, setTab] = React.useState<TabKey>("leads")
   const points = series[tab]
-
-  const max = Math.max(...points.map((p) => p.v), 0)
   const total = points.reduce((sum, p) => sum + p.v, 0)
-  const { line, area } = buildPath(points, max)
-
   const first = points[0]
   const last = points[points.length - 1]
-  const lastX = points.length > 1 ? VIEW_W : VIEW_W / 2
-  const lastY = last ? PAD_TOP + (VIEW_H - PAD_TOP - PAD_BOTTOM) * (1 - (max > 0 ? last.v / max : 0)) : 0
 
   return (
     <div className="rounded-xl border border-border-subtle bg-bg-surface p-5">
@@ -97,35 +99,38 @@ export function PerformanceChart({
         </div>
       ) : (
         <>
-          <svg
-            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-            className="mt-5 h-[200px] w-full"
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={`${TABS.find((t) => t.key === tab)?.label} over the last ${periodDays} days`}
-          >
-            <defs>
-              <linearGradient id="perf-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#00E5FF" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#00E5FF" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-
-            {/* No gridlines — they add visual noise a single-series line
-                doesn't need. */}
-            <path d={area} fill="url(#perf-fill)" />
-            <path
-              d={line}
-              fill="none"
-              stroke="#00E5FF"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-            {/* Marks the latest value's position on the line. */}
-            {last && <circle cx={lastX} cy={lastY} r="3" fill="#00E5FF" />}
-          </svg>
+          <div className="mt-5 h-[200px] w-full" aria-label={`${TABS.find((t) => t.key === tab)?.label} over the last ${periodDays} days`} role="img">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={points} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+                <defs>
+                  <linearGradient id="perf-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#00E5FF" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#00E5FF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                {/* Axes present but invisible: they establish the scale
+                    Recharts needs without drawing gridlines or tick labels —
+                    a single-series chart like this doesn't need them, and the
+                    date range is already stated in the labels below. */}
+                <XAxis dataKey="date" hide />
+                <YAxis hide domain={[0, (max: number) => max * 1.1]} />
+                <Tooltip
+                  content={<CustomTooltip isCurrency={tab === "revenue"} />}
+                  cursor={{ stroke: "#1E2935", strokeWidth: 1 }}
+                />
+                <Area
+                  type="linear"
+                  dataKey="v"
+                  stroke="#00E5FF"
+                  strokeWidth={1.5}
+                  fill="url(#perf-fill)"
+                  isAnimationActive={false}
+                  activeDot={{ r: 4, fill: "#00E5FF", stroke: "none" }}
+                  dot={EndpointDot}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
 
           <div className="mt-2 flex items-center justify-between text-[10px] text-text-disabled">
             <span>{first ? formatDay(first.date) : ""}</span>

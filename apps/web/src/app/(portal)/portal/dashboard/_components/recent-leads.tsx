@@ -1,24 +1,19 @@
 import Link from "next/link"
 import { Users } from "lucide-react"
 import type { RecentLead } from "@/lib/dashboard"
+import { StatusBadge, EmptyState, type StatusTone } from "@/components/portal/primitives"
+import { LeadScoreBadge } from "@/components/portal/lead-score-badge"
+import { DataTable, type DataTableColumn } from "@/components/portal/data-table"
 
-// Mirrors the colour map on /portal/leads exactly, so a status reads the same
-// wherever it appears. Not imported from there — that file doesn't export it,
-// and duplicating four class strings is cheaper than restructuring that page
-// just to share them.
-const STATUS_BADGE: Record<string, string> = {
-  new: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  contacted: "bg-warning-400/10 text-warning-400 border-warning-400/20",
-  qualified: "bg-success-500/10 text-success-400 border-success-500/20",
-  converted: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-  lost: "bg-error-500/10 text-error-400 border-error-500/20",
-}
-
-const TIER_COLOR: Record<string, string> = {
-  A: "text-success-400",
-  B: "text-cyan-400",
-  C: "text-warning-400",
-  D: "text-error-400",
+// Same mapping as /portal/leads — the same status word means the same colour
+// everywhere, via the one shared StatusBadge rather than each page keeping
+// its own copy of this table.
+const STATUS_TONE: Record<string, StatusTone> = {
+  new: "cyan",
+  contacted: "warning",
+  qualified: "success",
+  converted: "success",
+  lost: "error",
 }
 
 function timeAgo(iso: string): string {
@@ -29,6 +24,54 @@ function timeAgo(iso: string): string {
   if (hrs < 24) return `${hrs}h ago`
   return `${Math.floor(hrs / 24)}d ago`
 }
+
+const columns: DataTableColumn<RecentLead>[] = [
+  {
+    key: "name",
+    header: "Name",
+    width: "1fr",
+    render: (lead) => (
+      <p className="truncate text-[12px] font-medium text-text-primary">{lead.name ?? "—"}</p>
+    ),
+  },
+  {
+    key: "company",
+    header: "Company",
+    width: "1fr",
+    render: (lead) => <p className="truncate text-[12px] text-text-muted">{lead.company ?? "—"}</p>,
+  },
+  {
+    key: "score",
+    header: "Score",
+    width: "72px",
+    render: (lead) => <LeadScoreBadge score={lead.score} tier={lead.tier} />,
+  },
+  {
+    key: "status",
+    header: "Status",
+    width: "90px",
+    render: (lead) => (
+      <StatusBadge tone={STATUS_TONE[lead.status] ?? "cyan"}>
+        <span className="capitalize">{lead.status}</span>
+      </StatusBadge>
+    ),
+  },
+  {
+    key: "source",
+    header: "Source",
+    width: "90px",
+    render: (lead) => <p className="truncate text-[12px] text-text-muted">{lead.source ?? "—"}</p>,
+  },
+  {
+    key: "time",
+    header: "Time",
+    width: "80px",
+    align: "right",
+    render: (lead) => (
+      <span className="text-[11px] text-text-disabled">{timeAgo(lead.createdAt)}</span>
+    ),
+  },
+]
 
 export function RecentLeads({ leads }: { leads: RecentLead[] }) {
   return (
@@ -46,65 +89,13 @@ export function RecentLeads({ leads }: { leads: RecentLead[] }) {
       </div>
 
       {leads.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated">
-            <Users className="h-5 w-5 text-text-disabled" />
-          </div>
-          <p className="text-sm font-semibold text-text-primary">No leads yet</p>
-          <p className="mt-1 max-w-[260px] text-xs text-text-muted">
-            Leads captured by your site or audit form will appear here.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No leads yet"
+          body="Leads captured by your site or audit form will appear here."
+        />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-text-disabled">
-                <th className="px-5 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Company</th>
-                <th className="px-3 py-2 font-medium">Score</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Source</th>
-                <th className="px-5 py-2 text-right font-medium">Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-subtle/60">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="text-[12px]">
-                  <td className="whitespace-nowrap px-5 py-2.5 font-medium text-text-primary">
-                    {lead.name ?? "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-text-muted">
-                    {lead.company ?? "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
-                    <span className="font-mono tabular-nums text-text-primary">{lead.score}</span>
-                    {lead.tier && (
-                      <span className={`ml-1.5 font-semibold ${TIER_COLOR[lead.tier] ?? "text-text-disabled"}`}>
-                        {lead.tier}
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
-                    <span
-                      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10.5px] font-medium capitalize ${
-                        STATUS_BADGE[lead.status] ?? STATUS_BADGE.new
-                      }`}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-text-muted">
-                    {lead.source ?? "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-2.5 text-right text-text-disabled">
-                    {timeAgo(lead.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable columns={columns} rows={leads} minWidth="520px" />
       )}
     </div>
   )

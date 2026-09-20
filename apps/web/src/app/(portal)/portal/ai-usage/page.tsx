@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { AGENTS, isAgentKey } from "@/lib/ai/agents"
 import {
-  PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, NoOrg,
+  PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, NoOrg,
 } from "@/components/portal/primitives"
+import { UsageMeter } from "@/components/portal/usage-meter"
 import { BudgetForm } from "./_components/budget-form"
 
 export const metadata: Metadata = { title: "AI Usage" }
@@ -31,7 +32,7 @@ export default async function AiUsagePage() {
       .gte("created_at", monthStartIso()),
     db
       .from("ai_usage_budgets")
-      .select("monthly_limit_usd, current_spend_usd, hard_stop")
+      .select("monthly_limit_usd, current_spend_usd, hard_stop, alert_at_percent")
       .eq("org_id", org.org_id)
       .maybeSingle(),
   ])
@@ -50,6 +51,7 @@ export default async function AiUsagePage() {
   const inputTokens = requests.reduce((n, r) => n + (r.input_tokens ?? 0), 0)
   const outputTokens = requests.reduce((n, r) => n + (r.output_tokens ?? 0), 0)
   const usedPct = limit > 0 ? Math.min(Math.round((spend / limit) * 100), 100) : 0
+  const alertAtPercent = Number(budgetRes.data?.alert_at_percent ?? 80)
 
   const byAgent = Object.entries(
     requests.reduce<Record<string, { count: number; cost: number }>>((acc, r) => {
@@ -62,7 +64,7 @@ export default async function AiUsagePage() {
     }, {})
   ).sort((a, b) => b[1].cost - a[1].cost)
 
-  const tone = usedPct >= 100 ? "bad" : usedPct >= 80 ? "warn" : "default"
+  const tone = usedPct >= 100 ? "error" : usedPct >= alertAtPercent ? "warning" : "default"
 
   return (
     <PageShell>
@@ -72,14 +74,14 @@ export default async function AiUsagePage() {
       />
       <PageBody>
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Requests" value={requests.length.toLocaleString()} hint="This month" />
-          <StatCard
+          <KpiCard label="Requests" value={requests.length.toLocaleString()} hint="This month" />
+          <KpiCard
             label="Tokens"
             value={`${((inputTokens + outputTokens) / 1000).toFixed(1)}K`}
             hint={`${(inputTokens / 1000).toFixed(1)}K in · ${(outputTokens / 1000).toFixed(1)}K out`}
           />
-          <StatCard label="Spend" value={`$${spend.toFixed(2)}`} hint={`of $${limit.toFixed(2)}`} tone={tone} />
-          <StatCard
+          <KpiCard label="Spend" value={`$${spend.toFixed(2)}`} hint={`of $${limit.toFixed(2)}`} tone={tone} />
+          <KpiCard
             label="Remaining"
             value={`$${Math.max(limit - spend, 0).toFixed(2)}`}
             hint={`${usedPct}% used`}
@@ -87,26 +89,18 @@ export default async function AiUsagePage() {
           />
         </div>
 
-        <div className="mb-6 rounded-xl border border-border-subtle bg-bg-elevated p-5">
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="text-text-muted">Monthly budget</span>
-            <span className="tabular-nums text-text-disabled">
-              ${spend.toFixed(2)} / ${limit.toFixed(2)}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-bg-surface">
-            <div
-              className={`h-full rounded-full transition-all ${
-                usedPct >= 100 ? "bg-error-400" : usedPct >= 80 ? "bg-warning-400" : "bg-cyan-500"
-              }`}
-              style={{ width: `${usedPct}%` }}
-            />
-          </div>
-          {budgetRes.data?.hard_stop !== false && (
-            <p className="mt-3 text-xs text-text-disabled">
-              Requests are refused once the budget is reached — you will never be billed past it.
-            </p>
-          )}
+        <div className="mb-6 rounded-xl border border-border-subtle bg-bg-surface p-5">
+          <UsageMeter
+            spentLabel={`$${spend.toFixed(2)}`}
+            limitLabel={`$${limit.toFixed(2)}`}
+            percent={usedPct}
+            alertAtPercent={alertAtPercent}
+            footnote={
+              budgetRes.data?.hard_stop !== false
+                ? "Requests are refused once the budget is reached — you will never be billed past it."
+                : undefined
+            }
+          />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

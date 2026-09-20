@@ -3,14 +3,14 @@ import { Zap, Play, Pause, AlertCircle, FileEdit } from "lucide-react"
 import { getUserOrg, isOrgAdmin } from "@/lib/org"
 import { getManagedAutomations, type ManagedAutomation } from "@/lib/automation-manager"
 import {
-  PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, Badge, timeAgo, NoOrg,
-  type BadgeTone,
+  PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, StatusBadge, timeAgo, NoOrg,
+  type StatusTone,
 } from "@/components/portal/primitives"
 import { SyncButton } from "./_components/sync-button"
 
 export const metadata: Metadata = { title: "Automations" }
 
-const STATUS_META: Record<string, { label: string; tone: BadgeTone; icon: typeof Zap; dot: string }> = {
+const STATUS_META: Record<string, { label: string; tone: StatusTone; icon: typeof Zap; dot: string }> = {
   active: {
     label: "Active",
     tone: "cyan",
@@ -18,8 +18,8 @@ const STATUS_META: Record<string, { label: string; tone: BadgeTone; icon: typeof
     dot: "bg-cyan-400",
   },
   paused: { label: "Paused", tone: "neutral", icon: Pause, dot: "bg-border-strong" },
-  error: { label: "Error", tone: "bad", icon: AlertCircle, dot: "bg-error-400" },
-  draft: { label: "Draft", tone: "warn", icon: FileEdit, dot: "bg-warning-400/60" },
+  error: { label: "Error", tone: "error", icon: AlertCircle, dot: "bg-error-400" },
+  draft: { label: "Draft", tone: "warning", icon: FileEdit, dot: "bg-warning-400/60" },
 }
 
 function duration(ms: number | null): string {
@@ -54,13 +54,13 @@ export default async function AutomationsPage() {
         ) : (
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Workflows" value={summary.total} hint={`${summary.active} active`} />
-              <StatCard
+              <KpiCard label="Workflows" value={summary.total} hint={`${summary.active} active`} />
+              <KpiCard
                 label="Runs this month"
                 value={summary.executionsThisMonth.toLocaleString()}
                 hint="Across all workflows"
               />
-              <StatCard
+              <KpiCard
                 label="Success rate"
                 value={summary.overallSuccessRate === null ? "—" : `${summary.overallSuccessRate}%`}
                 hint="Of finished runs"
@@ -68,17 +68,17 @@ export default async function AutomationsPage() {
                   summary.overallSuccessRate === null
                     ? "default"
                     : summary.overallSuccessRate >= 95
-                      ? "good"
+                      ? "success"
                       : summary.overallSuccessRate >= 80
-                        ? "warn"
-                        : "bad"
+                        ? "warning"
+                        : "error"
                 }
               />
-              <StatCard
+              <KpiCard
                 label="Need attention"
                 value={summary.needingAttention}
                 hint={summary.needingAttention === 0 ? "Everything healthy" : "Failed on last run"}
-                tone={summary.needingAttention > 0 ? "bad" : "good"}
+                tone={summary.needingAttention > 0 ? "error" : "success"}
               />
             </div>
 
@@ -158,7 +158,7 @@ function AutomationRow({
 
         <div className="flex shrink-0 items-center gap-2">
           <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-          <Badge tone={meta.tone}>{meta.label}</Badge>
+          <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
         </div>
       </div>
 

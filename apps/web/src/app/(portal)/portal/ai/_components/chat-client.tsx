@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { Send, Loader2, ShieldAlert, CheckCircle2, AlertCircle } from "lucide-react"
-import { PageShell, PageHeader, Badge } from "@/components/portal/primitives"
+import { PageShell, PageHeader, StatusBadge } from "@/components/portal/primitives"
 
 export interface ChatAgent {
   key: string
@@ -137,7 +137,7 @@ export function ChatClient({
             >
               <span className="font-semibold">{a.name}</span>
               <span className="hidden text-xs text-text-disabled sm:inline">{a.role}</span>
-              {a.status !== "active" && <Badge tone="neutral">{a.status}</Badge>}
+              {a.status !== "active" && <StatusBadge tone="neutral">{a.status}</StatusBadge>}
             </button>
           ))}
         </div>

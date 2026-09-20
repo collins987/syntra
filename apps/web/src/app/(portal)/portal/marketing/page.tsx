@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { getInsights } from "@/lib/insights"
 import {
-  PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, Badge, timeAgo, NoOrg,
+  PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, StatusBadge, timeAgo, NoOrg,
 } from "@/components/portal/primitives"
 import { BarChart, DistributionBars } from "@/components/portal/bar-chart"
 
@@ -64,7 +64,7 @@ export default async function MarketingPage() {
       />
       <PageBody>
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <KpiCard
             label="Leads generated"
             value={insights.leads.total.toLocaleString()}
             hint={
@@ -72,15 +72,15 @@ export default async function MarketingPage() {
                 ? "No prior period to compare"
                 : `${change >= 0 ? "+" : ""}${change}% vs previous 30 days`
             }
-            tone={change === null ? "default" : change >= 0 ? "good" : "bad"}
+            tone={change === null ? "default" : change >= 0 ? "success" : "error"}
           />
-          <StatCard
+          <KpiCard
             label="High-intent (A/B)"
             value={(insights.leads.byTier["A"] ?? 0) + (insights.leads.byTier["B"] ?? 0)}
             hint="Tier A and B leads"
           />
-          <StatCard label="Avg lead score" value={insights.leads.avgScore ?? "—"} hint="0–100" />
-          <StatCard
+          <KpiCard label="Avg lead score" value={insights.leads.avgScore ?? "—"} hint="0–100" />
+          <KpiCard
             label="Emails sent"
             value={sent.filter((s) => s.status === "success").length}
             hint="By your automations and agents"
@@ -135,17 +135,17 @@ export default async function MarketingPage() {
                         {timeAgo(w.created_at)}
                       </p>
                     </div>
-                    <Badge
+                    <StatusBadge
                       tone={
                         w.status === "pending"
-                          ? "warn"
+                          ? "warning"
                           : w.status === "approved"
-                            ? "good"
+                            ? "success"
                             : "neutral"
                       }
                     >
                       {w.status}
-                    </Badge>
+                    </StatusBadge>
                   </div>
                 ))}
               </div>

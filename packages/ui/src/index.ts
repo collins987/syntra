@@ -1,10 +1,10 @@
 // Layout
 export { AppShell } from "./layout/app-shell"
 export { Sidebar } from "./layout/sidebar"
+export { TopBar } from "./layout/top-bar"
 
 // Components
 export { Button } from "./components/button"
-export { Badge } from "./components/badge"
 export { Card, CardHeader, CardTitle, CardContent } from "./components/card"
 export { MetricCard } from "./components/metric-card"
 export { ActivityFeed } from "./components/activity-feed"

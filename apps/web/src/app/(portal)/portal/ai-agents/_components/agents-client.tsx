@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, Pause, Play, Check, Lock } from "lucide-react"
 import {
-  PageShell, PageHeader, PageBody, Panel, Badge,
+  PageShell, PageHeader, PageBody, Panel, StatusBadge,
 } from "@/components/portal/primitives"
 import { AUTONOMY_LEVELS } from "@/lib/ai/agents"
 
@@ -96,9 +96,9 @@ export function AgentsClient({
               description={agent.blurb}
               actions={
                 <div className="flex items-center gap-2">
-                  <Badge tone={agent.status === "active" ? "good" : "neutral"}>
+                  <StatusBadge tone={agent.status === "active" ? "success" : "neutral"}>
                     {agent.status}
-                  </Badge>
+                  </StatusBadge>
                   {isAdmin && (
                     <button
                       onClick={() =>
@@ -210,8 +210,8 @@ export function AgentsClient({
                               <span className="font-mono text-[11px] text-text-primary">
                                 {tool.name}
                               </span>
-                              {tool.irreversible && <Badge tone="warn">always needs approval</Badge>}
-                              {!tool.reachesOutside && <Badge tone="neutral">read only</Badge>}
+                              {tool.irreversible && <StatusBadge tone="warning">always needs approval</StatusBadge>}
+                              {!tool.reachesOutside && <StatusBadge tone="neutral">read only</StatusBadge>}
                             </span>
                             <span className="mt-0.5 block text-xs text-text-muted">
                               {tool.description}

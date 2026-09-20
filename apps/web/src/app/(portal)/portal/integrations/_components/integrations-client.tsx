@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, Plug, KeyRound, Copy, Check, Trash2 } from "lucide-react"
 import {
-  PageShell, PageHeader, PageBody, Panel, Badge, timeAgo,
+  PageShell, PageHeader, PageBody, Panel, StatusBadge, timeAgo,
 } from "@/components/portal/primitives"
 
 export interface ConnectionView {
@@ -157,9 +157,9 @@ export function IntegrationsClient({
                         <p className="mt-0.5 max-w-lg text-xs text-text-muted">{c.description}</p>
                       </div>
                     </div>
-                    <Badge tone={c.connected ? "good" : "neutral"}>
+                    <StatusBadge tone={c.connected ? "success" : "neutral"}>
                       {c.connected ? "Connected" : "Not connected"}
-                    </Badge>
+                    </StatusBadge>
                   </div>
 
                   {c.connected ? (
@@ -270,7 +270,7 @@ export function IntegrationsClient({
                         <span className="min-w-0">
                           <span className="flex flex-wrap items-center gap-2">
                             <span className="font-mono text-[11px] text-text-primary">{cap.name}</span>
-                            {cap.irreversible && <Badge tone="warn">cannot be undone</Badge>}
+                            {cap.irreversible && <StatusBadge tone="warning">cannot be undone</StatusBadge>}
                           </span>
                           <span className="mt-0.5 block text-xs text-text-muted">
                             {cap.description}

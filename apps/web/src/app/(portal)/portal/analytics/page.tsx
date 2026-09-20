@@ -3,7 +3,7 @@ import { BarChart3 } from "lucide-react"
 import { getUserOrg } from "@/lib/org"
 import { getInsights } from "@/lib/insights"
 import {
-  PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, NoOrg,
+  PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, NoOrg,
 } from "@/components/portal/primitives"
 import { BarChart, DistributionBars } from "@/components/portal/bar-chart"
 
@@ -31,7 +31,7 @@ export default async function AnalyticsPage() {
         ) : (
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
+              <KpiCard
                 label="Leads"
                 value={insights.leads.total.toLocaleString()}
                 hint={
@@ -39,20 +39,20 @@ export default async function AnalyticsPage() {
                     ? "No prior period to compare"
                     : `${change >= 0 ? "+" : ""}${change}% vs previous 30 days`
                 }
-                tone={change === null ? "default" : change >= 0 ? "good" : "bad"}
+                tone={change === null ? "default" : change >= 0 ? "success" : "error"}
               />
-              <StatCard
+              <KpiCard
                 label="Avg lead score"
                 value={insights.leads.avgScore ?? "—"}
                 hint="0–100 across the period"
               />
-              <StatCard
+              <KpiCard
                 label="Automation runs"
                 value={insights.executions.total.toLocaleString()}
                 hint={`${insights.executions.failed} failed`}
-                tone={insights.executions.failed > 0 ? "warn" : "default"}
+                tone={insights.executions.failed > 0 ? "warning" : "default"}
               />
-              <StatCard
+              <KpiCard
                 label="Success rate"
                 value={
                   insights.executions.successRate === null
@@ -68,10 +68,10 @@ export default async function AnalyticsPage() {
                   insights.executions.successRate === null
                     ? "default"
                     : insights.executions.successRate >= 95
-                      ? "good"
+                      ? "success"
                       : insights.executions.successRate >= 80
-                        ? "warn"
-                        : "bad"
+                        ? "warning"
+                        : "error"
                 }
               />
             </div>

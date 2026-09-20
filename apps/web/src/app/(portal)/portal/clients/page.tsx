@@ -3,8 +3,8 @@ import { Building2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import {
-  PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, Badge, timeAgo, NoOrg,
-  type BadgeTone,
+  PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, StatusBadge, timeAgo, NoOrg,
+  type StatusTone,
 } from "@/components/portal/primitives"
 
 export const metadata: Metadata = { title: "Clients" }
@@ -13,13 +13,13 @@ export const metadata: Metadata = { title: "Clients" }
 // actually doing work with, as opposed to raw inbound leads.
 const CLIENT_STATUSES = ["won", "customer", "active", "converted"]
 
-const STATUS_TONE: Record<string, BadgeTone> = {
-  won: "good",
-  customer: "good",
-  active: "good",
-  converted: "good",
+const STATUS_TONE: Record<string, StatusTone> = {
+  won: "success",
+  customer: "success",
+  active: "success",
+  converted: "success",
   qualified: "cyan",
-  contacted: "warn",
+  contacted: "warning",
 }
 
 export default async function ClientsPage() {
@@ -59,9 +59,9 @@ export default async function ClientsPage() {
         ) : (
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard label="Clients" value={clients.length} hint="Converted contacts" tone="good" />
-              <StatCard label="In progress" value={inProgress.length} hint="Contacted or qualified" />
-              <StatCard
+              <KpiCard label="Clients" value={clients.length} hint="Converted contacts" tone="success" />
+              <KpiCard label="In progress" value={inProgress.length} hint="Contacted or qualified" />
+              <KpiCard
                 label="Conversion"
                 value={rows.length > 0 ? `${Math.round((clients.length / rows.length) * 100)}%` : "—"}
                 hint="Of engaged contacts"
@@ -94,7 +94,7 @@ export default async function ClientsPage() {
                         {timeAgo(r.updated_at ?? r.created_at)}
                       </p>
                     </div>
-                    <Badge tone={STATUS_TONE[String(r.status)] ?? "neutral"}>{r.status}</Badge>
+                    <StatusBadge tone={STATUS_TONE[String(r.status)] ?? "neutral"}>{r.status}</StatusBadge>
                   </div>
                 ))}
               </div>

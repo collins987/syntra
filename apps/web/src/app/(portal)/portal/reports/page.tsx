@@ -3,7 +3,7 @@ import { FileText } from "lucide-react"
 import { getUserOrg } from "@/lib/org"
 import { getInsights } from "@/lib/insights"
 import {
-  PageShell, PageHeader, PageBody, StatCard, Panel, EmptyState, NoOrg,
+  PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, NoOrg,
 } from "@/components/portal/primitives"
 
 export const metadata: Metadata = { title: "Reports" }
@@ -54,7 +54,7 @@ export default async function ReportsPage() {
             {periods.map(({ key, title, range, data }) => (
               <Panel key={key} title={title} description={range}>
                 <div className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
-                  <StatCard
+                  <KpiCard
                     label="Leads"
                     value={data.leads.total.toLocaleString()}
                     hint={
@@ -66,17 +66,17 @@ export default async function ReportsPage() {
                       data.leads.changePct === null
                         ? "default"
                         : data.leads.changePct >= 0
-                          ? "good"
-                          : "bad"
+                          ? "success"
+                          : "error"
                     }
                   />
-                  <StatCard
+                  <KpiCard
                     label="Automation runs"
                     value={data.executions.total.toLocaleString()}
                     hint={`${data.executions.succeeded} succeeded · ${data.executions.failed} failed`}
-                    tone={data.executions.failed > 0 ? "warn" : "default"}
+                    tone={data.executions.failed > 0 ? "warning" : "default"}
                   />
-                  <StatCard
+                  <KpiCard
                     label="Success rate"
                     value={
                       data.executions.successRate === null ? "—" : `${data.executions.successRate}%`
@@ -90,11 +90,11 @@ export default async function ReportsPage() {
                       data.executions.successRate === null
                         ? "default"
                         : data.executions.successRate >= 95
-                          ? "good"
-                          : "warn"
+                          ? "success"
+                          : "warning"
                     }
                   />
-                  <StatCard
+                  <KpiCard
                     label="AI spend"
                     value={`$${data.ai.costUsd.toFixed(2)}`}
                     hint={`${data.ai.requests} request${data.ai.requests === 1 ? "" : "s"}`}

@@ -55,23 +55,36 @@ export function EmptyState({
   )
 }
 
-export function StatCard({
+/**
+ * The one KPI/metric-tile component. Was two: a plain label/value/hint card
+ * here and a richer icon+delta version hand-rolled again inside the
+ * dashboard's KpiRow. `icon` and `children` are optional specifically so
+ * both call shapes collapse onto this one implementation instead of staying
+ * two ways to build the same kind of card.
+ */
+export function KpiCard({
+  icon: Icon,
   label,
   value,
   hint,
   tone = "default",
+  children,
 }: {
+  icon?: ElementType
   label: string
   value: ReactNode
+  /** Ignored when `children` is given — `children` is for richer content
+   *  (e.g. a trend chip) that needs more than a single line of text. */
   hint?: ReactNode
-  tone?: "default" | "good" | "warn" | "bad"
+  tone?: "default" | "success" | "warning" | "error"
+  children?: ReactNode
 }) {
   const toneClass =
-    tone === "good"
+    tone === "success"
       ? "text-success-400"
-      : tone === "warn"
+      : tone === "warning"
         ? "text-warning-400"
-        : tone === "bad"
+        : tone === "error"
           ? "text-error-400"
           : "text-text-primary"
 
@@ -80,12 +93,17 @@ export function StatCard({
     // surface as the top-level card tone and elevated for what sits inside
     // one (inputs, icon badges, hover states) — this card used the older
     // convention and looked a shade off next to the new dashboard.
-    <div className="rounded-xl border border-border-subtle bg-bg-surface p-5">
+    <div className="rounded-xl border border-border-subtle bg-bg-surface p-5 transition-colors hover:border-cyan-500/30">
+      {Icon && (
+        <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/[0.08]">
+          <Icon className="h-4 w-4 text-cyan-400" />
+        </span>
+      )}
       <p className="text-[11px] font-semibold uppercase tracking-widest text-text-disabled">
         {label}
       </p>
-      <p className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-text-muted">{hint}</p>}
+      <p className={`mt-0.5 font-mono text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
+      {children ?? (hint && <p className="mt-1 text-xs text-text-muted">{hint}</p>)}
     </div>
   )
 }
@@ -102,7 +120,7 @@ export function Panel({
   actions?: ReactNode
 }) {
   return (
-    // Same bg-bg-surface rule as StatCard above.
+    // Same bg-bg-surface rule as KpiCard above.
     <div className="rounded-xl border border-border-subtle bg-bg-surface">
       {(title || actions) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-6 py-4">
@@ -118,21 +136,41 @@ export function Panel({
   )
 }
 
-const BADGE_TONES = {
-  neutral: "bg-border-strong/30 text-text-muted border-border-subtle",
-  cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  good: "bg-success-400/10 text-success-400 border-success-400/20",
-  warn: "bg-warning-400/10 text-warning-400 border-warning-400/20",
-  bad: "bg-error-500/10 text-error-400 border-error-500/20",
+// The one status-badge implementation for the portal. A second, differently-
+// named copy (variant-based rather than tone-based) lived in @syntra/ui,
+// imported by nothing — deleted rather than kept as a second way to do the
+// same thing. Tone names match the semantic tokens everywhere else in the
+// app (success/warning/error), not shadcn's "destructive" — this codebase
+// already has hundreds of `error-*` references; renaming the token family
+// itself for one vocabulary preference isn't worth that churn.
+const STATUS_BADGE_TONES = {
+  neutral: { badge: "bg-border-strong/30 text-text-muted border-border-subtle", dot: "bg-text-muted" },
+  cyan: { badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20", dot: "bg-cyan-400" },
+  success: { badge: "bg-success-400/10 text-success-400 border-success-400/20", dot: "bg-success-400" },
+  warning: { badge: "bg-warning-400/10 text-warning-400 border-warning-400/20", dot: "bg-warning-400" },
+  error: { badge: "bg-error-500/10 text-error-400 border-error-500/20", dot: "bg-error-400" },
 } as const
 
-export type BadgeTone = keyof typeof BADGE_TONES
+export type StatusTone = keyof typeof STATUS_BADGE_TONES
 
-export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; children: ReactNode }) {
+export function StatusBadge({
+  tone = "neutral",
+  dot = false,
+  children,
+}: {
+  tone?: StatusTone
+  /** A leading status dot — the pattern several pages hand-rolled separately
+   *  for "running"/"live"/"deploying" indicators. No animation: this is a
+   *  restrained, static interface — see PROGRESS.md's 2026-09-20 entry. */
+  dot?: boolean
+  children: ReactNode
+}) {
+  const t = STATUS_BADGE_TONES[tone]
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-md border px-2.5 py-0.5 text-[11px] font-medium ${BADGE_TONES[tone]}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-[11px] font-medium ${t.badge}`}
     >
+      {dot && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.dot}`} />}
       {children}
     </span>
   )

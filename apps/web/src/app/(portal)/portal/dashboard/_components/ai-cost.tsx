@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { AiCostSummary } from "@/lib/dashboard"
+import { UsageMeter } from "@/components/portal/usage-meter"
 
 // Cyan first (the model actually in use), then a fixed rotation for whatever
 // else shows up — this only needs to be visually distinct per slice, not
@@ -19,8 +20,6 @@ export function AiCost({ cost }: { cost: AiCostSummary }) {
   const budgetPct = cost.budget && cost.budget.limitUsd > 0
     ? Math.min((cost.budget.spentUsd / cost.budget.limitUsd) * 100, 100)
     : null
-  const overAlert =
-    cost.budget !== null && budgetPct !== null && budgetPct >= cost.budget.alertAtPercent
 
   return (
     <div className="flex flex-col">
@@ -102,20 +101,12 @@ export function AiCost({ cost }: { cost: AiCostSummary }) {
 
           {cost.budget ? (
             <div className="mt-4 border-t border-border-subtle/60 pt-3">
-              <div className="flex items-center justify-between text-[10.5px]">
-                <span className="text-text-muted">Monthly budget</span>
-                <span className={overAlert ? "font-medium text-warning-400" : "text-text-disabled"}>
-                  {money(cost.budget.spentUsd)} / {money(cost.budget.limitUsd)}
-                </span>
-              </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-bg-elevated">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    overAlert ? "bg-warning-400" : "bg-cyan-500"
-                  }`}
-                  style={{ width: `${budgetPct ?? 0}%` }}
-                />
-              </div>
+              <UsageMeter
+                spentLabel={money(cost.budget.spentUsd)}
+                limitLabel={money(cost.budget.limitUsd)}
+                percent={budgetPct ?? 0}
+                alertAtPercent={cost.budget.alertAtPercent}
+              />
             </div>
           ) : (
             <p className="mt-4 border-t border-border-subtle/60 pt-3 text-[10.5px] text-text-disabled">
