@@ -26,7 +26,10 @@ import {
 // See SYNTRA_BUILD_PLAN.md §3 Decision D.
 
 const MAX_TOOL_TURNS = 4
-const MAX_OUTPUT_TOKENS = 2048
+// Kept modest because the OpenRouter test-path key runs on a free-tier
+// account with almost no real funded balance — a lower ceiling means more
+// requests fit in whatever's left before the next 402.
+const MAX_OUTPUT_TOKENS = 1024
 
 export interface ChatMessage {
   role: "user" | "assistant"
