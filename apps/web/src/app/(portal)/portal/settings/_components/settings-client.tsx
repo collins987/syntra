@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { PLANS } from "@/lib/pricing"
+import { PageShell, PageHeader, PageBody } from "@/components/portal/primitives"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -397,35 +398,34 @@ export function SettingsClient({ user, org, members, invites, role }: Props) {
   const [tab, setTab] = useState<Tab>("profile")
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-text-primary">Settings</h1>
-        <p className="mt-1 text-sm text-text-muted">Account, team and organization.</p>
-      </div>
-      <div className="flex gap-10">
-        <nav className="w-40 shrink-0 space-y-0.5">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                tab === t.id
-                  ? "bg-cyan-500/10 text-cyan-400 font-medium"
-                  : "text-text-muted hover:text-text-primary hover:bg-white/5"
-              }`}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        <div className="min-w-0 flex-1 max-w-lg">
-          {tab === "profile" && <ProfileTab user={user} />}
-          {tab === "security" && <SecurityTab />}
-          {tab === "team" && <TeamTab members={members} invites={invites} role={role} />}
-          {tab === "org" && org && <OrgTab org={org} role={role} />}
+    <PageShell>
+      <PageHeader title="Settings" subtitle="Account, team and organization." />
+      <PageBody>
+        <div className="flex gap-10">
+          <nav className="w-40 shrink-0 space-y-0.5">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                  tab === t.id
+                    ? "bg-cyan-500/10 text-cyan-400 font-medium"
+                    : "text-text-muted hover:text-text-primary hover:bg-white/5"
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </nav>
+          <div className="min-w-0 flex-1 max-w-lg">
+            {tab === "profile" && <ProfileTab user={user} />}
+            {tab === "security" && <SecurityTab />}
+            {tab === "team" && <TeamTab members={members} invites={invites} role={role} />}
+            {tab === "org" && org && <OrgTab org={org} role={role} />}
+          </div>
         </div>
-      </div>
-    </div>
+      </PageBody>
+    </PageShell>
   )
 }

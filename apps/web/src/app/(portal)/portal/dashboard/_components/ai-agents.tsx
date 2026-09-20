@@ -26,7 +26,12 @@ export function AIAgents({ agents }: { agents: AgentStat[] }) {
         </p>
       )}
 
-      <div className="grid grid-cols-3 gap-2.5 p-4">
+      {/* Single column below sm: at 375px-wide, three cards side by side left
+          each with only ~105px — too tight for an avatar, name, role and
+          three stat rows. Above sm this panel always has enough width,
+          whether it's the full page (below xl) or ~38% of it (xl and up, once
+          the dashboard's two-column layout kicks in). */}
+      <div className="grid grid-cols-1 gap-2.5 p-4 sm:grid-cols-3">
         {agents.map((agent) => (
           <AgentCard key={agent.id} agent={agent} />
         ))}

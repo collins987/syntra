@@ -6,6 +6,7 @@ import {
   PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, StatusBadge, timeAgo, NoOrg,
   type StatusTone,
 } from "@/components/portal/primitives"
+import { LeadScoreBadge } from "@/components/portal/lead-score-badge"
 
 export const metadata: Metadata = { title: "Clients" }
 
@@ -82,11 +83,12 @@ export default async function ClientsPage() {
                       </p>
                     </div>
                     <div className="hidden w-20 shrink-0 text-right sm:block">
-                      <p className="text-xs text-text-muted">Score</p>
-                      <p className="font-mono text-[11px] tabular-nums text-text-disabled">
-                        {r.score ?? "—"}
-                        {r.tier ? ` · ${r.tier}` : ""}
-                      </p>
+                      <p className="mb-1 text-xs text-text-muted">Score</p>
+                      {typeof r.score === "number" ? (
+                        <LeadScoreBadge score={r.score} tier={r.tier} />
+                      ) : (
+                        <span className="text-[11px] text-text-disabled">—</span>
+                      )}
                     </div>
                     <div className="hidden w-24 shrink-0 text-right md:block">
                       <p className="text-xs text-text-muted">Updated</p>

@@ -11,18 +11,48 @@ import { navigation } from "./navigation"
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+  /** Below `lg` the sidebar is an off-canvas drawer rather than a fixed
+   *  column — there was no mobile handling here at all before this: an
+   *  always-visible 240px (or 52px collapsed) column permanently ate a third
+   *  to two-thirds of a phone-width screen. */
+  mobileOpen: boolean
+  onMobileClose: () => void
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
 
+  // The drawer closes on navigation — staying open after a tap would leave a
+  // phone-width user looking at the nav instead of the page they just chose.
+  React.useEffect(() => {
+    onMobileClose()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   return (
-    <aside
-      className={cn(
-        "flex h-screen flex-col border-r border-border-subtle bg-bg-surface transition-all duration-150",
-        collapsed ? "w-[52px]" : "w-60"
+    <>
+      {/* Backdrop — mobile only, and only while the drawer is open. */}
+      {mobileOpen && (
+        <div
+          aria-hidden="true"
+          onClick={onMobileClose}
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          "flex h-screen flex-col border-r border-border-subtle bg-bg-surface transition-all duration-150",
+          collapsed ? "lg:w-[52px]" : "lg:w-60",
+          // Mobile: fixed drawer, off-canvas by default, full nav width when
+          // open regardless of the desktop collapsed state (an icon-only
+          // drawer is hard to tap navigate). Desktop: back to normal document
+          // flow, always visible, honouring `collapsed`.
+          "fixed inset-y-0 left-0 z-40 w-60",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:static lg:z-auto lg:translate-x-0"
+        )}
+      >
       {/* Logo */}
       <div
         className={cn(
@@ -123,8 +153,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
       )}
 
-      {/* Collapse toggle */}
-      <div className="shrink-0 border-t border-border-subtle">
+      {/* Collapse toggle — desktop only. On mobile the drawer is always full
+          width regardless of `collapsed` (an icon-only drawer is hard to tap
+          navigate), so this control would do nothing visible there. */}
+      <div className="hidden shrink-0 border-t border-border-subtle lg:block">
         <button
           onClick={onToggle}
           className={cn(
@@ -142,6 +174,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }

@@ -3,36 +3,24 @@ import type { Website } from "@syntra/db"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { Globe, ExternalLink, Clock } from "lucide-react"
+import {
+  PageShell, PageHeader, PageBody, EmptyState, StatusBadge, type StatusTone,
+} from "@/components/portal/primitives"
 
 export const metadata: Metadata = { title: "Websites" }
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  live: {
-    label: "Live",
-    dot: "bg-success-400",
-    badge: "bg-success-500/10 text-success-400 border-success-500/20",
-  },
-  deploying: {
-    label: "Deploying",
-    dot: "bg-cyan-400",
-    badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  },
-  onboarding: {
-    label: "In setup",
-    dot: "bg-warning-400",
-    badge: "bg-warning-400/10 text-warning-400 border-warning-400/20",
-  },
-  paused: {
-    label: "Paused",
-    dot: "bg-border-strong",
-    badge: "bg-border-strong/30 text-text-muted border-border-subtle",
-  },
+const STATUS_LABEL: Record<string, string> = {
+  live: "Live",
+  deploying: "Deploying",
+  onboarding: "In setup",
+  paused: "Paused",
 }
 
-const DEFAULT_STATUS = {
-  label: "Unknown",
-  dot: "bg-border-strong",
-  badge: "bg-border-strong/30 text-text-muted border-border-subtle",
+const STATUS_TONE: Record<string, StatusTone> = {
+  live: "success",
+  deploying: "cyan",
+  onboarding: "warning",
+  paused: "neutral",
 }
 
 export default async function WebsitesPage() {
@@ -50,29 +38,34 @@ export default async function WebsitesPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-border-subtle px-8 py-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-text-primary">Websites</h1>
-            <p className="mt-1 text-sm text-text-muted">
-              {websites.length} site{websites.length !== 1 ? "s" : ""} managed by SYNTRA
-            </p>
-          </div>
+    <PageShell>
+      <PageHeader
+        title="Websites"
+        subtitle={`${websites.length} site${websites.length !== 1 ? "s" : ""} managed by SYNTRA`}
+        actions={
           <button className="flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-4 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors">
             <Globe className="h-3.5 w-3.5" />
             New website
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <PageBody>
         {websites.length === 0 ? (
-          <EmptyState />
+          <EmptyState
+            icon={Globe}
+            title="No websites yet"
+            body="Your AI-generated website will appear here once created."
+            action={
+              <button className="flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors">
+                <Globe className="h-3.5 w-3.5" />
+                Create website
+              </button>
+            }
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {websites.map((site) => {
-              const cfg = STATUS_CONFIG[site.status] ?? DEFAULT_STATUS
               const displayUrl = site.live_url ?? site.preview_url ?? site.domain
               return (
                 <div
@@ -94,11 +87,10 @@ export default async function WebsitesPage() {
                       )}
                     </div>
                   </div>
-                  <div className="mb-4 flex items-center gap-2">
-                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                    <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${cfg.badge}`}>
-                      {cfg.label}
-                    </span>
+                  <div className="mb-4">
+                    <StatusBadge tone={STATUS_TONE[site.status] ?? "neutral"} dot>
+                      {STATUS_LABEL[site.status] ?? "Unknown"}
+                    </StatusBadge>
                   </div>
                   <div className="mt-auto flex items-center justify-between border-t border-border-subtle/40 pt-3">
                     <div className="flex items-center gap-1.5 text-[11px] text-text-disabled">
@@ -121,23 +113,7 @@ export default async function WebsitesPage() {
             })}
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated">
-        <Globe className="h-6 w-6 text-text-disabled" />
-      </div>
-      <p className="text-base font-semibold text-text-primary">No websites yet</p>
-      <p className="mt-1 text-sm text-text-muted">Your AI-generated website will appear here once created.</p>
-      <button className="mt-6 flex h-9 items-center gap-2 rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-bg-base hover:bg-cyan-400 transition-colors">
-        <Globe className="h-3.5 w-3.5" />
-        Create website
-      </button>
-    </div>
+      </PageBody>
+    </PageShell>
   )
 }

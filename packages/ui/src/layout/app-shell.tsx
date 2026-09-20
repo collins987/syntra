@@ -35,13 +35,19 @@ export function AppShell({
 }: AppShellProps) {
   const [collapsed, setCollapsed] = React.useState(false)
   const [paletteOpen, setPaletteOpen] = React.useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false)
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-bg-base">
       <PortalBackground />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
 
       <div className="relative flex flex-1 flex-col overflow-hidden">
         <TopBar
@@ -50,6 +56,7 @@ export function AppShell({
           initialHealth={initialHealth}
           notificationsSlot={notificationsSlot}
           onSearchClick={() => setPaletteOpen(true)}
+          onMenuClick={() => setMobileNavOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto">

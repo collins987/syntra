@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import * as Popover from "@radix-ui/react-popover"
 import { Bell, CheckCheck } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -28,13 +29,18 @@ function timeAgo(iso: string): string {
  * Supabase query — RLS scopes every read and write to the signed-in user
  * (`user_id = auth.uid()`, migration 011), so this is safe to run directly
  * from the browser rather than through an API route.
+ *
+ * Built on Radix's Popover rather than a hand-rolled absolutely-positioned
+ * div — this is a genuine popover (rich custom content, a "mark all read"
+ * action), not a menu list, so Popover fits better than DropdownMenu.
+ * Outside-click and Escape-to-close are now Radix's job, not a manual
+ * mousedown/keydown listener pair on `document`.
  */
 export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: number }) {
   const [open, setOpen] = React.useState(false)
   const [rows, setRows] = React.useState<NotificationRow[] | null>(null)
   const [unread, setUnread] = React.useState(initialUnreadCount)
   const [loading, setLoading] = React.useState(false)
-  const containerRef = React.useRef<HTMLDivElement>(null)
 
   // New notifications arrive live rather than only on next page load — the
   // same postgres_changes pattern the dashboard's activity feed already uses.
@@ -75,26 +81,7 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
     }
   }, [])
 
-  React.useEffect(() => {
-    if (!open) return
-    function onClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false)
-    }
-    document.addEventListener("mousedown", onClickOutside)
-    document.addEventListener("keydown", onEscape)
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside)
-      document.removeEventListener("keydown", onEscape)
-    }
-  }, [open])
-
-  async function handleOpen() {
-    const next = !open
+  async function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next && rows === null) {
       setLoading(true)
@@ -130,27 +117,27 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
   const hasUnread = unread > 0
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={handleOpen}
-        aria-label={hasUnread ? `Notifications, ${unread} unread` : "Notifications"}
-        aria-expanded={open}
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-border-subtle text-text-muted transition-colors hover:border-border hover:text-text-secondary"
-      >
-        <Bell className="h-4 w-4" />
-        {hasUnread && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cyan-500 px-1 font-mono text-[9px] font-bold text-bg-base">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
+    <Popover.Root open={open} onOpenChange={handleOpenChange}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          aria-label={hasUnread ? `Notifications, ${unread} unread` : "Notifications"}
+          className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-border-subtle text-text-muted transition-colors hover:border-border hover:text-text-secondary"
+        >
+          <Bell className="h-4 w-4" />
+          {hasUnread && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cyan-500 px-1 font-mono text-[9px] font-bold text-bg-base">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </Popover.Trigger>
 
-      {open && (
-        <div
-          role="dialog"
-          aria-label="Notifications"
-          className="absolute right-0 top-10 z-40 w-80 overflow-hidden rounded-xl border border-border-subtle bg-bg-surface shadow-modal"
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={8}
+          className="z-40 w-80 overflow-hidden rounded-xl border border-border-subtle bg-bg-surface shadow-modal"
         >
           <div className="flex items-center justify-between border-b border-border-subtle px-3.5 py-2.5">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
@@ -208,8 +195,8 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
               </ul>
             )}
           </div>
-        </div>
-      )}
-    </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }

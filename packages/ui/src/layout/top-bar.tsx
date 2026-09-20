@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search } from "lucide-react"
+import { Search, Menu } from "lucide-react"
 import { StatusPill, type SystemHealth } from "./status-pill"
 
 export interface TopBarProps {
@@ -13,14 +13,33 @@ export interface TopBarProps {
    *  non-functional — see AppShell for why. */
   notificationsSlot?: React.ReactNode
   onSearchClick: () => void
+  /** Opens the sidebar drawer — only rendered below `lg`, where the sidebar
+   *  isn't visible on its own. */
+  onMenuClick: () => void
 }
 
-export function TopBar({ user, orgName, initialHealth, notificationsSlot, onSearchClick }: TopBarProps) {
+export function TopBar({
+  user,
+  orgName,
+  initialHealth,
+  notificationsSlot,
+  onSearchClick,
+  onMenuClick,
+}: TopBarProps) {
   const initials = user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "V"
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Account"
 
   return (
-    <header className="relative flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4">
+    <header className="relative flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border-subtle bg-bg-surface px-4">
+      <button
+        type="button"
+        onClick={onMenuClick}
+        aria-label="Open navigation"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-subtle text-text-muted transition-colors hover:border-border hover:text-text-secondary lg:hidden"
+      >
+        <Menu className="h-4 w-4" />
+      </button>
+
       <button
         type="button"
         onClick={onSearchClick}
@@ -28,7 +47,7 @@ export function TopBar({ user, orgName, initialHealth, notificationsSlot, onSear
       >
         <Search className="h-3.5 w-3.5 shrink-0" />
         <span className="flex-1 truncate text-left">Search anything...</span>
-        <kbd className="shrink-0 rounded border border-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-text-disabled">
+        <kbd className="hidden shrink-0 rounded border border-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-text-disabled sm:inline">
           ⌘K
         </kbd>
       </button>
