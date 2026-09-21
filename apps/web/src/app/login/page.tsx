@@ -4,7 +4,17 @@ import { LoginForm } from "./login-form"
 
 export const metadata: Metadata = { title: "Sign In" }
 
-export default function LoginPage() {
+interface Props {
+  searchParams: Promise<{ redirectTo?: string }>
+}
+
+export default async function LoginPage({ searchParams }: Props) {
+  const { redirectTo } = await searchParams
+  // An invitee who doesn't have an account yet needs the same destination
+  // carried through to signup — otherwise it's silently dropped here and
+  // they land in fresh onboarding instead of the org they were invited to.
+  const signupHref = redirectTo ? `/signup?redirectTo=${encodeURIComponent(redirectTo)}` : "/signup"
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg-base p-4">
       {/* Background grid */}
@@ -27,7 +37,7 @@ export default function LoginPage() {
 
         <p className="mt-4 text-center text-xs text-text-disabled">
           Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-cyan-400 hover:text-cyan-300 transition-colors">
+          <a href={signupHref} className="text-cyan-400 hover:text-cyan-300 transition-colors">
             Get started
           </a>
         </p>

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { safeRedirect } from "@/lib/safe-redirect"
 
 export function SignupForm() {
   const [email, setEmail] = useState("")
@@ -26,11 +27,16 @@ export function SignupForm() {
 
     setLoading(true)
     const supabase = createClient()
+    // Carries an invite link through email confirmation — without this, an
+    // invited user who doesn't have an account yet loses the invite the
+    // moment they have to confirm their email, and lands in fresh onboarding
+    // instead of the org they were invited to.
+    const target = new URLSearchParams(window.location.search).get("redirectTo")
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/portal/dashboard`,
+        emailRedirectTo: `${window.location.origin}${safeRedirect(target)}`,
       },
     })
 

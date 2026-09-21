@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, Menu } from "lucide-react"
+import { Search, Menu, LogOut } from "lucide-react"
 import { StatusPill, type SystemHealth } from "./status-pill"
 
 export interface TopBarProps {
@@ -28,6 +28,14 @@ export function TopBar({
 }: TopBarProps) {
   const initials = user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "V"
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Account"
+
+  async function handleSignOut() {
+    await fetch("/api/auth/signout", { method: "POST" })
+    // A full reload, not router.push — every cached client-side state (React
+    // Query-style hooks, in-memory Supabase session) needs to be gone, not
+    // just the URL to change.
+    window.location.href = "/login"
+  }
 
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border-subtle bg-bg-surface px-4">
@@ -65,6 +73,15 @@ export function TopBar({
             <p className="truncate text-xs font-medium text-text-primary">{displayName}</p>
             {orgName && <p className="truncate text-[11px] text-text-muted">{orgName}</p>}
           </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+            title="Sign out"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-subtle text-text-muted transition-colors hover:border-error-400/40 hover:text-error-400"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </header>
