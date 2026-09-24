@@ -124,8 +124,8 @@ Do these first. Most failures here turn later tests into `BLOCKED`.
 | BLD-04 | P0 | Production build | `npx next build` (needs about 1.5 GB free disk) | Succeeds. About 60 routes listed. | |
 | BLD-05 | P1 | Turborepo build | `pnpm turbo build` at root | All packages build and the cache is used on a second run | |
 | BLD-06 | P0 | Auto-deploy | Push a trivial commit to `main` | Vercel deploy is triggered and succeeds; production shows the change | |
-| BLD-07 | P1 | SDK fence enforced | Temporarily add `import Anthropic from "@anthropic-ai/sdk"` to any file outside `src/lib/ai/`, then lint | Lint **fails** with `no-restricted-imports`. Revert afterwards. | |
-| BLD-08 | P2 | Source maps not public | Production: open a JS chunk URL and append `.map` | `404` (maps were deleted after upload to Sentry) | |
+| BLD-07 | P1 | SDK fence enforced | Temporarily add `import Anthropic from "@anthropic-ai/sdk"` to any file outside `src/lib/ai/`, then lint | Lint **fails** with `no-restricted-imports`. Revert afterwards. | **PASS** (2026-09-24) — added the import to a throwaway file at `src/lib/bld07-test.ts`, ran `next lint`. Failed exactly as expected, with the custom message pointing at `lib/ai/gateway`. File deleted afterward. |
+| BLD-08 | P2 | Source maps not public | Production: open a JS chunk URL and append `.map` | Not retrievable — in practice Vercel answers a missing static asset with `403` (`X-Matched-Path: /_next/static/not-found.txt`), not literally `404`; either counts as a pass, only a real map body is a fail | **PASS** (2026-09-24) — checked `/_next/static/chunks/webpack-*.js.map` directly against production: `403 Forbidden`, empty body. Maps aren't exposed. |
 
 ### 5.2 Public marketing site
 
