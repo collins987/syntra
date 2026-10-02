@@ -117,12 +117,12 @@ function ProfileTab({ user }: { user: UserData }) {
       {banner && <Banner {...banner} />}
       <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-surface px-6 py-5">
         <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Display name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className={input} />
+          <label htmlFor="profile-name" className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Display name</label>
+          <input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className={input} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Email</label>
-          <input value={user.email} disabled className={`${input} cursor-not-allowed opacity-50`} />
+          <label htmlFor="profile-email" className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Email</label>
+          <input id="profile-email" value={user.email} disabled className={`${input} cursor-not-allowed opacity-50`} />
           <p className="text-xs text-text-disabled">Email changes require verification — contact support.</p>
         </div>
         <button onClick={save} disabled={loading || name === (user.name ?? "")} className={btn}>
@@ -171,9 +171,9 @@ function SecurityTab() {
       {banner && <Banner {...banner} />}
       <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-surface px-6 py-5">
         <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">New password</label>
+          <label htmlFor="security-new-password" className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">New password</label>
           <div className="relative">
-            <input type={show ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Minimum 8 characters" className={`${input} pr-10`} />
+            <input id="security-new-password" type={show ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Minimum 8 characters" className={`${input} pr-10`} />
             <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary">
               {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -190,8 +190,8 @@ function SecurityTab() {
           )}
         </div>
         <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Confirm password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat new password" className={input} />
+          <label htmlFor="security-confirm-password" className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Confirm password</label>
+          <input id="security-confirm-password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat new password" className={input} />
         </div>
         <button onClick={update} disabled={loading || !pw || !confirm} className={btn}>
           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -364,12 +364,12 @@ function OrgTab({ org, role }: { org: OrgData; role: string }) {
       {banner && <Banner {...banner} />}
       <div className="space-y-4 rounded-xl border border-border-subtle bg-bg-surface px-6 py-5">
         <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Organization name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} className={`${input} ${!isAdmin ? "cursor-not-allowed opacity-50" : ""}`} />
+          <label htmlFor="org-name" className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Organization name</label>
+          <input id="org-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} className={`${input} ${!isAdmin ? "cursor-not-allowed opacity-50" : ""}`} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Slug</label>
-          <input value={org.slug} disabled className={`${input} cursor-not-allowed opacity-50`} />
+          <label htmlFor="org-slug" className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">Slug</label>
+          <input id="org-slug" value={org.slug} disabled className={`${input} cursor-not-allowed opacity-50`} />
           <p className="text-xs text-text-disabled">Slugs cannot be changed after creation.</p>
         </div>
         <div className="space-y-1.5">

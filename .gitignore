@@ -22,7 +22,16 @@ storybook-static
 .env.production
 .env.production.local
 .env.*.local
+.env.qa
 *.local
+
+# ─── Playwright QA suite (apps/web/qa) ────────────────────────────────────────
+apps/web/qa/report/
+apps/web/qa/fixtures/accounts.generated.json
+apps/web/qa/fixtures/.auth/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
 
 # Private keys & certificates
 *.pem

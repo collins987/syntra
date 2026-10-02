@@ -72,7 +72,13 @@ function buildCsp(): string {
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'"],
+    // Next dev's HMR/React-refresh client and its default eval-based source-map
+    // devtool both execute via eval() — without 'unsafe-eval' here in dev, every
+    // client component silently fails to hydrate/attach event handlers at all
+    // (confirmed directly: a CSP pageerror fires on every interaction, forms
+    // submit natively instead of through React, wiping their own fields).
+    // Production builds don't use eval, so this never relaxes the deployed policy.
+    "script-src": PRODUCTION ? ["'self'", "'unsafe-inline'"] : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     // React's inline `style={{...}}` attribute and Tailwind's dev-time injected
     // <style> both need 'unsafe-inline' here too — CSP has no practical
     // per-attribute nonce mechanism for inline styles, and style-based script
