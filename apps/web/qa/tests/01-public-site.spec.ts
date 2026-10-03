@@ -42,7 +42,7 @@ test.describe("WEB-01 — public pages load", () => {
 
 test("WEB-03 — home services section shows all 3 plans + OS", async ({ page }) => {
   await page.goto("/")
-  for (const name of ["Sites", "Flow", "Marketing"]) {
+  for (const name of ["Sites", "Flow", "Growth"]) {
     await expect(page.getByText(name, { exact: false }).first()).toBeVisible()
   }
 })

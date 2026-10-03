@@ -80,6 +80,31 @@ test.describe("as adminA", () => {
     expect(afterRevoke.status()).toBe(401)
   })
 
+  test("LI-01 — a lead captured via crm.upsert (the real Flow/Growth path) is visible on /portal/leads", async ({ page }) => {
+    // There is exactly one leads table, not one per service — confirmed by
+    // reading every write path in the codebase (api/audit/route.ts and this
+    // crm.upsert capability are the only two). This proves that in practice,
+    // not just by schema inspection: a lead created the way an n8n workflow
+    // or AI agent actually would (via the Action Gateway, not a direct
+    // insert) shows up on the shared Lead Intelligence page immediately.
+    const mint = await page.request.post("/api/integrations/token", {
+      data: { label: "qa-li-test", capabilities: ["crm.upsert"] },
+    })
+    const { token, tokenRecord } = await mint.json()
+
+    const email = `qa-li-${Date.now()}@example.com`
+    const res = await page.request.post("/api/actions/crm.upsert", {
+      headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": `qa-li-${Date.now()}` },
+      data: { email, name: "QA Lead Intelligence Test", source: "flow" },
+    })
+    expect(res.status()).toBe(200)
+
+    await page.goto("/portal/leads")
+    await expect(page.getByText(email)).toBeVisible()
+
+    await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`) // cleanup
+  })
+
   test("GW-05 — capability not granted on the token is denied", async ({ page }) => {
     const mint = await page.request.post("/api/integrations/token", {
       data: { label: "qa-narrow-scope", capabilities: ["crm.upsert"] }, // deliberately no notify.slack

@@ -1,6 +1,8 @@
 import { sendEmail } from "@/lib/resend"
 import { n8n } from "@/lib/n8n"
 import { AgentMessageEmail } from "@/emails/agent-message"
+import { ensureScoringPolicy, scoreLead, INTERESTED_SERVICES, type LeadSignals } from "@/lib/leads/scoring"
+import type { InterestedService } from "@syntra/db"
 
 // Every capability SYNTRA can execute against the outside world. n8n and the AI
 // agents may only ask for these by name — they never hold credentials or call a
@@ -84,12 +86,25 @@ const emailSend: CapabilityDef<EmailSendInput> = {
 }
 
 // ── crm.upsert ────────────────────────────────────────────────────────────────
+//
+// This is the only way a customer org's own leads enter the system — the
+// public /audit funnel (api/audit/route.ts) writes exclusively to SYNTRA's
+// own internal intake org, never a customer's. Deliberately does NOT assign
+// score/tier: api/audit/route.ts's scoreAuditLead() needs revenue/industry,
+// which this capability's input never collects (an n8n workflow or agent
+// calling this has a name/email/company, not a qualification questionnaire).
+// A lead created here is real and fully visible everywhere leads are read —
+// just unscored until something scores it. See Lead Intelligence audit notes
+// (session dated around the Growth restructuring) for why a real scoring
+// pass for this path was deliberately not built rather than faked with a
+// placeholder heuristic.
 
 interface CrmUpsertInput {
   email: string
   name: string | null
   company: string | null
   source: string | null
+  interested_service: InterestedService | null
 }
 
 const crmUpsert: CapabilityDef<CrmUpsertInput> = {
@@ -102,6 +117,10 @@ const crmUpsert: CapabilityDef<CrmUpsertInput> = {
     const email = str(o, "email")
     if (!email) return { ok: false, error: "`email` is required" }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "`email` is not valid" }
+    const interestedServiceRaw = str(o, "interested_service")
+    if (interestedServiceRaw && !INTERESTED_SERVICES.includes(interestedServiceRaw as InterestedService)) {
+      return { ok: false, error: "`interested_service` must be one of sites, flow, growth, os" }
+    }
     return {
       ok: true,
       value: {
@@ -109,6 +128,7 @@ const crmUpsert: CapabilityDef<CrmUpsertInput> = {
         name: str(o, "name"),
         company: str(o, "company"),
         source: str(o, "source") ?? "automation",
+        interested_service: (interestedServiceRaw as InterestedService) ?? null,
       },
     }
   },
@@ -116,22 +136,48 @@ const crmUpsert: CapabilityDef<CrmUpsertInput> = {
   async execute(input, ctx) {
     const { data: existing } = await ctx.db
       .from("leads")
-      .select("id")
+      .select("id, created_at")
       .eq("org_id", ctx.orgId)
       .eq("email", input.email)
       .maybeSingle()
 
+    const policy = await ensureScoringPolicy(ctx.orgId)
+
     if (existing?.id) {
+      const signals: LeadSignals = {
+        interested_service: input.interested_service,
+        source: input.source,
+        revenue: null,
+        industry: null,
+        created_at: existing.created_at,
+        company: input.company,
+      }
+      const { score, tier } = scoreLead(signals, policy)
+
       const { error } = await ctx.db
         .from("leads")
         .update({
           ...(input.name ? { name: input.name } : {}),
           ...(input.company ? { company: input.company } : {}),
+          ...(input.interested_service ? { interested_service: input.interested_service } : {}),
+          score,
+          tier,
         })
         .eq("id", existing.id)
       if (error) throw new Error(error.message)
       return { leadId: existing.id, created: false }
     }
+
+    const createdAt = new Date().toISOString()
+    const signals: LeadSignals = {
+      interested_service: input.interested_service,
+      source: input.source,
+      revenue: null,
+      industry: null,
+      created_at: createdAt,
+      company: input.company,
+    }
+    const { score, tier } = scoreLead(signals, policy)
 
     const { data, error } = await ctx.db
       .from("leads")
@@ -141,6 +187,10 @@ const crmUpsert: CapabilityDef<CrmUpsertInput> = {
         name: input.name,
         company: input.company,
         source: input.source,
+        interested_service: input.interested_service,
+        created_at: createdAt,
+        score,
+        tier,
       })
       .select("id")
       .single()

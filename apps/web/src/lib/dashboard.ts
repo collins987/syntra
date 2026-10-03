@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import type { Automation, WorkflowExecutionStatus } from "@syntra/db"
 import { DEFAULT_PERIOD, type DashboardPeriod } from "./dashboard-periods"
+import { isOsPlan } from "@/lib/pricing"
 
 // Re-exported for server components (this file touches next/headers via
 // lib/supabase/server, so it can only ever run server-side). A "use client"
@@ -82,8 +83,8 @@ export interface AgentStat {
 export interface ServiceOverview {
   sites: { total: number; live: number }
   flow: { total: number; active: number; successRate: number | null }
-  /** No campaigns table exists yet — this can only ever be false. */
-  marketing: { connected: boolean }
+  /** Real lead volume for the period — Growth's own attract-stage metric. */
+  growth: { leads: number }
   leadIntelligence: { total: number }
   aiAgents: { total: number; activeTasks: number }
   os: { active: boolean }
@@ -381,16 +382,13 @@ export async function getDashboardData(
       active: automations.filter((a) => a.status === "active").length,
       successRate,
     },
-    // No campaigns table exists yet. Rendered as "not connected" rather than
-    // inventing a metric — see the marketing-page rule about not putting
-    // numbers on screen that nothing backs.
-    marketing: { connected: false },
+    growth: { leads: leads.length },
     leadIntelligence: { total: leads.length },
     aiAgents: {
       total: agents.length,
       activeTasks: agents.reduce((sum, a) => sum + a.tasks, 0),
     },
-    os: { active: subscriptionRes.data?.plan === "os" },
+    os: { active: isOsPlan(subscriptionRes.data?.plan) },
   }
 
   // ── Recent leads ───────────────────────────────────────────────────────────

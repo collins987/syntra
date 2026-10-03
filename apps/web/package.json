@@ -14,7 +14,8 @@
     "qa:report": "playwright show-report qa/report",
     "qa:seed": "tsx qa/scripts/seed-accounts.ts",
     "qa:rls": "tsx qa/scripts/rls-cross-tenant.ts",
-    "qa:headers": "tsx qa/scripts/header-scan.ts"
+    "qa:headers": "tsx qa/scripts/header-scan.ts",
+    "qa:scoring": "tsx qa/scripts/lead-scoring.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 
-// Shared aggregation for Analytics, Marketing and Reports so the three pages
+// Shared aggregation for Analytics, Growth and Reports so the three pages
 // can never disagree about the same number.
+
+// A lead that has progressed past "new" into active work. Shared with
+// /portal/clients so "converted" means the same thing on both pages.
+export const CLIENT_STATUSES = ["won", "customer", "active", "converted"]
 
 export interface DayBucket {
   date: string

@@ -6,7 +6,7 @@ import { PLANS, CAPABILITIES, getPlan, type PlanId } from "@/lib/pricing"
 const PLAN_ICONS: Record<PlanId, typeof Globe> = {
   sites: Globe,
   flow: Zap,
-  marketing: Megaphone,
+  growth: Megaphone,
   os: Globe,
 }
 
@@ -31,20 +31,21 @@ const DETAIL: Record<string, { desc: string; bullets: string[] }> = {
       "Unlimited workflow runs",
     ],
   },
-  marketing: {
-    desc: "Content calendars, social scheduling, email sequences, and campaign reporting — produced in your brand voice and published on schedule. You approve what goes out, or hand over the routine posts entirely.",
+  growth: {
+    desc: "We build and operate the systems that attract prospects, capture demand, nurture leads, and turn more opportunities into customers. You approve what goes out.",
     bullets: [
-      "Copywriting trained on your brand voice",
-      "Social posts for LinkedIn, Instagram, X",
-      "Email newsletter + follow-up sequences",
-      "Monthly performance report",
-      "A/B testing on subject lines and CTAs",
+      "Content, social and SEO copy written in your brand voice — LinkedIn, Instagram, X, blog and email",
+      "Leads scored, qualified and routed automatically (Lead Intelligence)",
+      "Email newsletters and automated follow-up sequences",
+      "Every contact tracked from first touch to won",
+      "Campaign and funnel performance reported monthly, with A/B and subject-line testing",
+      "You approve before anything sends",
     ],
   },
   os: {
     desc: "Every SYNTRA service unified in one dashboard, plus a dedicated implementation team that handles onboarding, integrations, and ongoing optimisation. The closest thing to a full tech team without hiring one.",
     bullets: [
-      "Sites, Flow and Marketing combined",
+      "Sites, Flow and Growth combined",
       "Dedicated implementation manager",
       "Weekly strategy calls",
       "Priority support (2-hour SLA)",
