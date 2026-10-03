@@ -11,7 +11,7 @@ const STEPS = ["Business", "Service", "Goals", "Launch"]
 const PLAN_ICONS: Record<PlanId, typeof Globe> = {
   sites: Globe,
   flow: Zap,
-  marketing: Megaphone,
+  growth: Megaphone,
   os: Layers,
 }
 

@@ -26,6 +26,13 @@ const REVENUE_RANGES = [
   { value: "over-1m", label: "Over $1M/mo" },
 ]
 
+const INTERESTED_SERVICES = [
+  { value: "sites", label: "Syntra Sites" },
+  { value: "flow", label: "Syntra Flow" },
+  { value: "growth", label: "Syntra Growth" },
+  { value: "os", label: "Syntra OS (everything)" },
+]
+
 const AUDIT_AREAS = [
   { icon: Globe, label: "Website performance", desc: "SEO, conversion rate, page speed" },
   { icon: Zap, label: "Workflow automation", desc: "Manual tasks we can automate" },
@@ -46,6 +53,7 @@ export default function AuditPage() {
     industry: "",
     revenue: "",
     challenge: "",
+    interested_service: "",
   })
 
   function updateForm(key: keyof typeof form, value: string) {
@@ -203,6 +211,21 @@ export default function AuditPage() {
                       </select>
                     </FormField>
                   </div>
+
+                  <FormField label="Which service are you interested in?">
+                    <select
+                      value={form.interested_service}
+                      onChange={(e) => updateForm("interested_service", e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">Not sure yet</option>
+                      {INTERESTED_SERVICES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
 
                   <FormField label="Biggest operational challenge">
                     <textarea

@@ -2,12 +2,12 @@ import { test, expect } from "@playwright/test"
 
 // QA_TEST_PLAN.md §6.1 — PRC-01..05.
 // Prices per lib/pricing.ts (checked directly, not guessed):
-// Sites 297/38,700 · Flow 497/64,700 · Marketing 697/90,700 · OS 997/129,700
+// Sites 297/38,700 · Flow 497/64,700 · Growth 697/90,700 · OS 997/129,700
 
 const PLANS = [
   { name: "Sites", usd: "297", kes: "38,700" },
   { name: "Flow", usd: "497", kes: "64,700" },
-  { name: "Marketing", usd: "697", kes: "90,700" },
+  { name: "Growth", usd: "697", kes: "90,700" },
   { name: "OS", usd: "997", kes: "129,700" },
 ]
 

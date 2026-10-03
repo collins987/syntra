@@ -105,6 +105,9 @@ export interface Website {
   updated_at: string
 }
 
+export type InterestedService = "sites" | "flow" | "growth" | "os"
+export type LeadAssignmentStatus = "unassigned" | "assigned" | "in_progress"
+
 export interface Lead {
   id: string
   org_id: string
@@ -112,13 +115,50 @@ export interface Lead {
   name: string | null
   company: string | null
   source: string | null
+  // Deterministic Lead Intelligence — SYNTRA's own policy-driven qualification
+  // score. Never written by AI. See lib/leads/scoring.ts.
   score: number
   tier: LeadTier | null
+  // AI Intelligence — reserved for a future, separate AI-interpreted layer.
+  // Exists in the database since migration 008; brought into this type now
+  // only to match reality — no code reads or writes these yet, and nothing
+  // here may ever derive from or feed back into score/tier.
+  ai_score: number | null
+  ai_reasoning: string | null
   audit_answers: Record<string, unknown>
   audit_report: Record<string, unknown>
   crm_id: string | null
   status: string
   metadata: Record<string, unknown>
+  assigned_to: string | null
+  assignment_status: LeadAssignmentStatus
+  campaign_id: string | null
+  interested_service: InterestedService | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LeadScoringPolicy {
+  id: string
+  org_id: string
+  field: "interested_service" | "source" | "revenue" | "industry" | "recency" | "company"
+  operator: "equals" | "in" | "range" | "not_null"
+  value: unknown
+  points: number
+  category: "intent" | "qualification" | "engagement" | "completeness"
+  explanation: string
+  enabled: boolean
+  created_at: string
+}
+
+export interface Campaign {
+  id: string
+  org_id: string
+  name: string
+  channel: string | null
+  status: "active" | "paused" | "ended"
+  starts_at: string | null
+  ends_at: string | null
   created_at: string
   updated_at: string
 }

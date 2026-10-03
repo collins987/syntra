@@ -19,31 +19,39 @@ test.describe("as adminA", () => {
   test.use({ storageState: AUTH_PATH })
 
   test("APR-01/02/04 — queue visible, approve and reject both work", async ({ page }) => {
+    // Unique per run — approvals carry a 7-day TTL (confirmed via SQL, see
+    // QA_TEST_PLAN.md D-020), so a static email across many runs today left
+    // multiple leftover pending rows and tripped a strict-mode "2 elements"
+    // violation. A fresh address each run means this test only ever matches
+    // the row it just created, regardless of how many prior runs piled up.
+    const approveEmail = `qa-approve-${Date.now()}@example.com`
+    const rejectEmail = `qa-reject-${Date.now()}@example.com`
+
     // Create two approvals to test both outcomes without needing them to already exist.
     await page.goto("/portal/ai")
     const input = page.locator("#ai-chat-input")
 
-    await input.fill('Send a test email to qa-approve@example.com subject "QA approve test" body "hi"')
+    await input.fill(`Send a test email to ${approveEmail} subject "QA approve test" body "hi"`)
     await input.press("Enter")
     await expect(page.getByText(/approval|queued/i).last()).toBeVisible({ timeout: 30_000 })
 
-    await input.fill('Send a test email to qa-reject@example.com subject "QA reject test" body "hi"')
+    await input.fill(`Send a test email to ${rejectEmail} subject "QA reject test" body "hi"`)
     await input.press("Enter")
     await expect(page.getByText(/approval|queued/i).last()).toBeVisible({ timeout: 30_000 })
 
     await page.goto("/portal/approvals")
-    await expect(page.getByText("qa-approve@example.com")).toBeVisible()
-    await expect(page.getByText("qa-reject@example.com")).toBeVisible()
+    await expect(page.getByText(approveEmail)).toBeVisible()
+    await expect(page.getByText(rejectEmail)).toBeVisible()
 
     // Reject the second one — nothing should execute.
-    const rejectRow = page.getByText("qa-reject@example.com").locator("xpath=ancestor::*[self::div or self::li][1]")
+    const rejectRow = page.getByText(rejectEmail).locator("xpath=ancestor::*[self::div or self::li][1]")
     await rejectRow.getByRole("button", { name: "Reject" }).click()
-    await expect(page.getByText("qa-reject@example.com")).not.toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(rejectEmail)).not.toBeVisible({ timeout: 10_000 })
 
     // Approve the first — should move out of "waiting for you".
-    const approveRow = page.getByText("qa-approve@example.com").locator("xpath=ancestor::*[self::div or self::li][1]")
+    const approveRow = page.getByText(approveEmail).locator("xpath=ancestor::*[self::div or self::li][1]")
     await approveRow.getByRole("button", { name: "Approve" }).click()
-    await expect(page.getByText("qa-approve@example.com")).not.toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(approveEmail)).not.toBeVisible({ timeout: 10_000 })
   })
 
   test("BUD-01 — usage page renders real numbers, not a crash", async ({ page }) => {

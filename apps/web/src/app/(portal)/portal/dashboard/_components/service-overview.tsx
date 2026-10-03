@@ -30,12 +30,12 @@ function buildRows(s: ServiceOverviewData): ServiceCardData[] {
             }`,
     },
     {
-      href: "/portal/marketing",
+      href: "/portal/growth",
       icon: Megaphone,
-      name: "Syntra Marketing",
-      sub: "Content & campaigns",
-      live: s.marketing.connected,
-      metric: "Not connected",
+      name: "Syntra Growth",
+      sub: "Attract, qualify & convert",
+      live: s.growth.leads > 0,
+      metric: s.growth.leads === 0 ? "No leads yet" : `${s.growth.leads} leads this period`,
     },
     {
       href: "/portal/leads",

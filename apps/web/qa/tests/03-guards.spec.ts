@@ -17,7 +17,7 @@ const PORTAL_ROUTES = [
   "/portal/clients",
   "/portal/integrations",
   "/portal/leads",
-  "/portal/marketing",
+  "/portal/growth",
   "/portal/reports",
   "/portal/settings",
   "/portal/websites",

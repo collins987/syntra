@@ -17,7 +17,7 @@ test.use({ storageState: AUTH_PATH })
 const ROUTES = [
   "/portal/dashboard",
   "/portal/automations",
-  "/portal/marketing",
+  "/portal/growth",
   "/portal/analytics",
   "/portal/reports",
   "/portal/clients",
@@ -48,11 +48,11 @@ for (const route of ROUTES) {
   })
 }
 
-test("PG-05 — 30-day leads figure matches across Analytics, Marketing, Reports", async ({ page }) => {
+test("PG-05 — 30-day leads figure matches across Analytics, Growth, Reports", async ({ page }) => {
   const numbers: Record<string, string | null> = {}
   for (const [key, route] of [
     ["analytics", "/portal/analytics"],
-    ["marketing", "/portal/marketing"],
+    ["growth", "/portal/growth"],
     ["reports", "/portal/reports"],
   ] as const) {
     await page.goto(route)

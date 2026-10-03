@@ -50,14 +50,16 @@ test("AI-04 — empty message is not submittable", async ({ page }) => {
 })
 
 test("AI-07 — irreversible action creates an approval, does not execute directly", async ({ page }) => {
+  // Unique per run — see APR-01's identical note in 11-approvals-budget.spec.ts.
+  const noopEmail = `qa-noop-${Date.now()}@example.com`
   const input = page.locator("#ai-chat-input")
-  await input.fill('Send a test email to qa-noop@example.com with subject "QA test" saying hello')
+  await input.fill(`Send a test email to ${noopEmail} with subject "QA test" saying hello`)
   await input.press("Enter")
   await expect(page.getByText(/approval|queued|waiting for/i).last()).toBeVisible({ timeout: 30_000 })
 
   await page.goto("/portal/approvals")
   await expect(page.getByText(/waiting for you/i)).toBeVisible()
-  await expect(page.getByText("qa-noop@example.com")).toBeVisible()
+  await expect(page.getByText(noopEmail)).toBeVisible()
 })
 
 test("AI-12 — a paused agent refuses to chat", async ({ page }) => {

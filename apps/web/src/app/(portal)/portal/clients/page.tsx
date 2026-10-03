@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Building2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
+import { CLIENT_STATUSES } from "@/lib/insights"
 import {
   PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, StatusBadge, timeAgo, NoOrg,
   type StatusTone,
@@ -9,10 +10,6 @@ import {
 import { LeadScoreBadge } from "@/components/portal/lead-score-badge"
 
 export const metadata: Metadata = { title: "Clients" }
-
-// Contacts that have progressed past "new" — the people this business is
-// actually doing work with, as opposed to raw inbound leads.
-const CLIENT_STATUSES = ["won", "customer", "active", "converted"]
 
 const STATUS_TONE: Record<string, StatusTone> = {
   won: "success",

@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react"
 import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { DEFAULT_PERIOD, getDashboardData, isDashboardPeriod } from "@/lib/dashboard"
+import { isOsPlan } from "@/lib/pricing"
 import { KpiRow } from "./_components/kpi-row"
 import { PerformanceChart } from "./_components/performance-chart"
 import { PeriodPicker } from "./_components/period-picker"
@@ -139,7 +140,7 @@ export default async function DashboardPage({
       </div>
 
       {/* ── OS upsell — hidden once the org is already on it ── */}
-      {data.plan !== "os" && (
+      {!isOsPlan(data.plan) && (
         <div className="mt-4">
           <OsBanner />
         </div>

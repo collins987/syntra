@@ -2,9 +2,9 @@
 // Anything that needs to know about a plan imports from here — do not redefine
 // prices or plan IDs anywhere else.
 
-export type PlanId = "sites" | "flow" | "marketing" | "os"
+export type PlanId = "sites" | "flow" | "growth" | "os"
 
-export const PLAN_IDS: readonly PlanId[] = ["sites", "flow", "marketing", "os"]
+export const PLAN_IDS: readonly PlanId[] = ["sites", "flow", "growth", "os"]
 
 export interface Plan {
   id: PlanId
@@ -95,19 +95,30 @@ export const PLANS: Plan[] = [
     badge: "Most popular",
   },
   {
-    id: "marketing",
-    name: "Syntra Marketing",
+    id: "growth",
+    name: "Syntra Growth",
     category: "Grow",
-    summary: "Content, campaigns and follow-up that keep running so your pipeline never goes quiet.",
+    summary: "Customer acquisition and growth on autopilot.",
     priceUsd: 697,
-    priceKes: kes(process.env.NEXT_PUBLIC_INTASEND_PRICE_MARKETING_KES, 90700),
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_MARKETING ?? "price_marketing",
+    // Prefers the new GROWTH-named env vars; falls back to the original
+    // MARKETING-named ones so this works whether or not Vercel/CI have been
+    // updated yet — no coordinated deploy required. Once the GROWTH vars are
+    // confirmed set everywhere, the MARKETING fallback can be deleted; until
+    // then both names work, so there's no window where checkout can break.
+    priceKes: kes(
+      process.env.NEXT_PUBLIC_INTASEND_PRICE_GROWTH_KES ?? process.env.NEXT_PUBLIC_INTASEND_PRICE_MARKETING_KES,
+      90700
+    ),
+    priceId:
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_GROWTH ??
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_MARKETING ??
+      "price_growth",
     features: [
       "Everything in Syntra Flow",
-      "Content written in your brand voice",
-      "Social posts scheduled and published for you",
-      "Email newsletters and follow-up sequences",
-      "Campaign performance reported monthly",
+      "Content and social written in your brand voice — LinkedIn, Instagram, X",
+      "Leads scored, qualified and routed automatically",
+      "Email newsletters and automated follow-up sequences",
+      "Performance reported monthly, with A/B testing",
       "You approve before anything goes out",
     ],
     cta: "Grow On Autopilot",
@@ -116,12 +127,12 @@ export const PLANS: Plan[] = [
     id: "os",
     name: "Syntra OS",
     category: "Everything",
-    summary: "Sites, Flow and Marketing running together, with a team that owns the outcome.",
+    summary: "Sites, Flow and Growth running together, with a team that owns the outcome.",
     priceUsd: 997,
     priceKes: kes(process.env.NEXT_PUBLIC_INTASEND_PRICE_OS_KES, 129700),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_OS ?? "price_os",
     features: [
-      "Sites, Flow and Marketing combined",
+      "Sites, Flow and Growth combined",
       "Your AI team at full capability",
       "Dedicated implementation manager",
       "Weekly strategy calls",
@@ -162,6 +173,16 @@ export function isPlanId(value: string): value is PlanId {
 
 export function getPlan(id: string): Plan | undefined {
   return PLANS.find((p) => p.id === id)
+}
+
+/**
+ * The "everything bundled" plan — the one place its id is a literal. Two
+ * call sites (the dashboard's OS upsell banner and its services.os.active
+ * flag) used to compare `plan === "os"` directly; if this id is ever renamed,
+ * that's two places to miss instead of one.
+ */
+export function isOsPlan(planId: string | null | undefined): boolean {
+  return planId === "os"
 }
 
 export const KES_AMOUNTS: Record<PlanId, number> = PLANS.reduce(

@@ -48,7 +48,7 @@ export const navigation: NavGroup[] = [
     items: [
       { label: "Syntra Sites", href: "/portal/websites", icon: Globe, sub: "Website & SEO" },
       { label: "Syntra Flow", href: "/portal/automations", icon: Zap, sub: "Automation & workflows" },
-      { label: "Syntra Marketing", href: "/portal/marketing", icon: Megaphone, sub: "Content & campaigns" },
+      { label: "Syntra Growth", href: "/portal/growth", icon: Megaphone, sub: "Attract, qualify & convert" },
       { label: "Lead Intelligence", href: "/portal/leads", icon: Users, sub: "Scoring & CRM" },
       { label: "AI Agents", href: "/portal/ai-agents", icon: Bot, sub: "Ava · Max · Leo" },
     ],
