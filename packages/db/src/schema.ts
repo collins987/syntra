@@ -107,6 +107,7 @@ export interface Website {
 
 export type InterestedService = "sites" | "flow" | "growth" | "os"
 export type LeadAssignmentStatus = "unassigned" | "assigned" | "in_progress"
+export type AiConfidence = "low" | "medium" | "high"
 
 export interface Lead {
   id: string
@@ -119,12 +120,21 @@ export interface Lead {
   // score. Never written by AI. See lib/leads/scoring.ts.
   score: number
   tier: LeadTier | null
-  // AI Intelligence — reserved for a future, separate AI-interpreted layer.
-  // Exists in the database since migration 008; brought into this type now
-  // only to match reality — no code reads or writes these yet, and nothing
-  // here may ever derive from or feed back into score/tier.
+  // AI Intelligence — independent, contextual analysis. Written only by
+  // lib/ai/functions/analyze-lead.ts via the ai.analyze_lead Action Gateway
+  // capability. Nothing here may ever derive from, feed back into, or be
+  // composited with score/tier — see AI_LEAD_INTELLIGENCE_PLAN.md for the
+  // hard architectural boundary.
   ai_score: number | null
   ai_reasoning: string | null
+  // Audit / cache / version metadata for the AI analysis above. See
+  // migration 013. All nullable — a lead that has never been analyzed has
+  // ai_analyzed_at IS NULL and every other ai_* field is null.
+  ai_analyzed_at: string | null
+  ai_model: string | null
+  ai_analysis_version: string | null
+  ai_analysis_input_hash: string | null
+  ai_confidence: AiConfidence | null
   audit_answers: Record<string, unknown>
   audit_report: Record<string, unknown>
   crm_id: string | null

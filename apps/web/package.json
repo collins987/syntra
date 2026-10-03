@@ -15,7 +15,9 @@
     "qa:seed": "tsx qa/scripts/seed-accounts.ts",
     "qa:rls": "tsx qa/scripts/rls-cross-tenant.ts",
     "qa:headers": "tsx qa/scripts/header-scan.ts",
-    "qa:scoring": "tsx qa/scripts/lead-scoring.ts"
+    "qa:scoring": "tsx qa/scripts/lead-scoring.ts",
+    "qa:ai-lead-parser": "tsx qa/scripts/lead-ai-parser.ts",
+    "qa:ai-lead-dry-run": "tsx qa/scripts/lead-ai-dry-run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

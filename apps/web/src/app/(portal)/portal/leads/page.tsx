@@ -8,6 +8,7 @@ import { Users, TrendingUp } from "lucide-react"
 import {
   PageShell, PageHeader, PageBody, EmptyState, StatusBadge, type StatusTone,
 } from "@/components/portal/primitives"
+import Link from "next/link"
 import { LeadScoreBadge } from "@/components/portal/lead-score-badge"
 import { LeadAssignSelect } from "@/components/portal/lead-assign-select"
 import { DataTable, type DataTableColumn } from "@/components/portal/data-table"
@@ -101,12 +102,12 @@ export default async function LeadsPage() {
       header: "Lead",
       width: "1fr",
       render: (lead) => (
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-text-primary">
+        <Link href={`/portal/leads/${lead.id}`} className="block min-w-0 group">
+          <p className="truncate text-sm font-semibold text-text-primary group-hover:text-cyan-300 transition-colors">
             {lead.name ?? "Unknown"}
           </p>
           <p className="truncate font-mono text-[11px] text-text-disabled">{lead.email}</p>
-        </div>
+        </Link>
       ),
     },
     {

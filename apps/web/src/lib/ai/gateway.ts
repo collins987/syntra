@@ -185,6 +185,38 @@ async function recordRequest(params: {
   })
 }
 
+/** Logs a structured completion to ai_requests under a per-feature
+ *  function_name/version so Lead Intelligence calls (and any future
+ *  structured-completion feature) can be audited distinctly from the
+ *  conversational agent chat flow above. Same table, same shape. */
+async function recordStructuredRequest(params: {
+  orgId: string
+  functionName: string
+  functionVersion: string
+  model: string
+  inputTokens: number
+  outputTokens: number
+  costUsd: number
+  durationMs: number
+  status: string
+  error?: string | null
+}): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any
+  await db.from("ai_requests").insert({
+    org_id: params.orgId,
+    function_name: params.functionName,
+    function_version: params.functionVersion,
+    model: params.model,
+    input_tokens: params.inputTokens,
+    output_tokens: params.outputTokens,
+    cost_usd: params.costUsd,
+    duration_ms: params.durationMs,
+    status: params.status,
+    error: params.error ?? null,
+  })
+}
+
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
 export async function chat(params: {
@@ -498,3 +530,172 @@ export async function executeApproval(params: {
   if (succeeded) return { ok: true }
   return { ok: false, error: error!, failure: "failed" }
 }
+
+// ── Structured completion (single-turn, no tools) ────────────────────────────
+//
+// completeStructured is the entry point for features that need the model to
+// return structured text they parse themselves (AI Lead Intelligence is the
+// first). It reuses the same budget, spend, provider abstraction, cost
+// accounting, Sentry, and ai_requests logging as chat() — just without the
+// multi-turn tool-use loop that chat() carries. If a future feature wants
+// tool use, it stays with chat().
+
+export type StructuredStatus =
+  | "success"
+  | "budget_exhausted"
+  | "provider_error"
+  | "rate_limited"
+
+export interface StructuredResult {
+  status: StructuredStatus
+  /** Raw text the provider returned. Caller validates/parses. Empty on failure. */
+  text: string
+  model: string
+  usage: { inputTokens: number; outputTokens: number; costUsd: number }
+  /** HTTP-ish code if the provider was reached and refused; null otherwise. */
+  providerStatus?: number | null
+  error?: string | null
+}
+
+export async function completeStructured(params: {
+  orgId: string
+  functionName: string
+  functionVersion: string
+  system: string
+  user: string
+  maxOutputTokens?: number
+}): Promise<StructuredResult> {
+  const { orgId, functionName, functionVersion, system, user } = params
+  const maxOutputTokens = params.maxOutputTokens ?? MAX_OUTPUT_TOKENS
+  const empty = { inputTokens: 0, outputTokens: 0, costUsd: 0 }
+  const model = getModel()
+
+  const budget = await loadBudget(orgId)
+  const ceiling = Number(budget.monthly_limit_usd) + Number(budget.overage_allowed_usd)
+  if (budget.hard_stop && Number(budget.current_spend_usd) >= ceiling) {
+    return {
+      status: "budget_exhausted",
+      text: "",
+      model,
+      usage: empty,
+      error: `This month's AI budget of $${Number(budget.monthly_limit_usd).toFixed(2)} is used up.`,
+    }
+  }
+
+  // Dry-run bypass for CI / integration tests. Returns a canned, parse-valid
+  // response shape without touching the provider or spending anything.
+  if (process.env.AI_LEAD_DRY_RUN === "1") {
+    const dryText = DRY_RUN_FIXTURE
+    await recordStructuredRequest({
+      orgId,
+      functionName,
+      functionVersion,
+      model: "dry-run",
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+      durationMs: 0,
+      status: "dry_run",
+      error: null,
+    })
+    return { status: "success", text: dryText, model: "dry-run", usage: empty }
+  }
+
+  const provider = getProvider()
+  const startedAt = Date.now()
+
+  try {
+    const response = await provider.chat({
+      model,
+      system,
+      messages: [{ role: "user", content: user }],
+      tools: [],
+      maxTokens: maxOutputTokens,
+    })
+
+    const inputTokens = response.usage.inputTokens
+    const outputTokens = response.usage.outputTokens
+    const costUsd = estimateCostUsd(model, inputTokens, outputTokens)
+    const durationMs = Date.now() - startedAt
+
+    await addSpend(orgId, costUsd, Number(budget.current_spend_usd))
+    await recordStructuredRequest({
+      orgId,
+      functionName,
+      functionVersion,
+      model,
+      inputTokens,
+      outputTokens,
+      costUsd,
+      durationMs,
+      status: "success",
+      error: null,
+    })
+
+    return {
+      status: "success",
+      text: response.text,
+      model,
+      usage: { inputTokens, outputTokens, costUsd },
+    }
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    const providerStatus = extractProviderStatus(err)
+    const classified: StructuredStatus =
+      providerStatus === 429 ? "rate_limited" : "provider_error"
+    const message = err instanceof Error ? err.message : String(err)
+
+    Sentry.captureException(err, {
+      tags: { ai_function: functionName, ai_version: functionVersion },
+      extra: { orgId },
+    })
+
+    await recordStructuredRequest({
+      orgId,
+      functionName,
+      functionVersion,
+      model,
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+      durationMs,
+      status: classified,
+      error: message,
+    })
+
+    return {
+      status: classified,
+      text: "",
+      model,
+      usage: empty,
+      providerStatus,
+      error: message,
+    }
+  }
+}
+
+function extractProviderStatus(err: unknown): number | null {
+  if (!err || typeof err !== "object") return null
+  const anyErr = err as { status?: unknown; statusCode?: unknown }
+  const raw = anyErr.status ?? anyErr.statusCode
+  return typeof raw === "number" ? raw : null
+}
+
+// Deterministic fixture used only when AI_LEAD_DRY_RUN=1. Matches the exact
+// output schema the lead-analysis prompt tells the model to produce — kept
+// here (not in a test file) because the dry-run short-circuit lives here too,
+// and so the fixture can never drift from the gateway's dry-run behavior.
+const DRY_RUN_FIXTURE = `SUMMARY: Dry-run fixture — no real analysis performed.
+
+OBSERVED:
+- Request was handled in AI_LEAD_DRY_RUN=1 mode.
+
+INFERRED:
+- (none)
+
+UNKNOWN:
+- Everything the real model would have observed about this specific lead.
+
+CONFIDENCE: low
+
+SCORE: NULL`

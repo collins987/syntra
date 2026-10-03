@@ -2,6 +2,7 @@ import { sendEmail } from "@/lib/resend"
 import { n8n } from "@/lib/n8n"
 import { AgentMessageEmail } from "@/emails/agent-message"
 import { ensureScoringPolicy, scoreLead, INTERESTED_SERVICES, type LeadSignals } from "@/lib/leads/scoring"
+import { analyzeLead } from "@/lib/ai/functions/analyze-lead"
 import type { InterestedService } from "@syntra/db"
 
 // Every capability SYNTRA can execute against the outside world. n8n and the AI
@@ -280,6 +281,52 @@ const workflowToggle: CapabilityDef<WorkflowToggleInput> = {
   },
 }
 
+// ── ai.analyze_lead ───────────────────────────────────────────────────────────
+//
+// AI Lead Intelligence capability. Thin wrapper around analyzeLead() — this
+// file does NOT reimplement the orchestrator's responsibilities (redaction,
+// cache check, prompt build, parse, persistence); it just enforces the
+// Action-Gateway-shaped boundary: validate input, dispatch, surface the
+// LeadAnalysisResult into the gateway's response envelope. The caller's
+// identity (orgId, admin role) is enforced at the HTTP boundary in
+// api/leads/[id]/analyze/route.ts, and analyzeLead() itself re-validates
+// that the lead belongs to the resolved org — defense in depth.
+//
+// Deterministic score/tier are never touched (grep-asserted in
+// qa/scripts/lead-ai-parser.ts).
+
+interface AiAnalyzeLeadInput {
+  leadId: string
+  force: boolean
+}
+
+const aiAnalyzeLead: CapabilityDef<AiAnalyzeLeadInput> = {
+  name: "ai.analyze_lead",
+  description: "Run AI contextual analysis on one lead belonging to this organisation.",
+  irreversible: false,
+  validate(input) {
+    const o = asObject(input)
+    if (!o) return { ok: false, error: "Expected an object" }
+    const leadId = str(o, "leadId")
+    if (!leadId) return { ok: false, error: "`leadId` is required" }
+    // UUID-shape check — the DB would reject a non-uuid anyway, but failing
+    // early is cheaper and keeps provider_error / invalid_lead distinct.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadId)) {
+      return { ok: false, error: "`leadId` must be a UUID" }
+    }
+    return { ok: true, value: { leadId, force: o.force === true } }
+  },
+  summarize: (i) => `Run AI contextual analysis on lead ${i.leadId}`,
+  async execute(input, ctx) {
+    const result = await analyzeLead({ orgId: ctx.orgId, leadId: input.leadId, force: input.force })
+    // The capability surfaces the full LeadAnalysisResult so the caller can
+    // distinguish success / cached / malformed_response / invalid_lead /
+    // budget_exhausted / rate_limited / provider_error without reparsing a
+    // generic error string. The gateway envelope wraps this as `result`.
+    return { ...result }
+  },
+}
+
 // ── Registry ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -288,6 +335,7 @@ export const CAPABILITIES: Record<string, CapabilityDef<any>> = {
   [crmUpsert.name]: crmUpsert,
   [notifySlack.name]: notifySlack,
   [workflowToggle.name]: workflowToggle,
+  [aiAnalyzeLead.name]: aiAnalyzeLead,
 }
 
 export const CAPABILITY_NAMES = Object.keys(CAPABILITIES)
