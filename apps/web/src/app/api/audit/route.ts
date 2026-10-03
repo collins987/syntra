@@ -24,6 +24,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 })
     }
 
+    // Phase 1f-γ2 — audit challenge hard cap at 2000 Unicode code points.
+    // Uses spread-count (code-point semantics), not .length (UTF-16 code
+    // units) so a user who writes 2000 emoji isn't rejected under JS's
+    // native UTF-16 count. Whitespace-only is treated as absent, matching
+    // redact.ts's existing nonEmpty philosophy. Rejection happens BEFORE
+    // the leads INSERT so no partial state is created; no scoring runs,
+    // no AI call occurs. Historical leads with >2000-character challenges
+    // are untouched — this is an ingestion control for new submissions,
+    // not a backfill.
+    const challengeRaw = typeof challenge === "string" ? challenge : ""
+    const challengeTrimmed = challengeRaw.trim()
+    const challengeNormalized = challengeTrimmed.length > 0 ? challengeTrimmed : null
+    if (challengeNormalized !== null && [...challengeNormalized].length > 2000) {
+      return NextResponse.json(
+        { error: "Challenge is too long. Please keep it under 2,000 characters." },
+        { status: 400 }
+      )
+    }
+
     let service: InterestedService | null = null
     if (interested_service) {
       if (!INTERESTED_SERVICES.includes(interested_service as InterestedService)) {
@@ -71,7 +90,10 @@ export async function POST(req: NextRequest) {
       score,
       tier,
       status: "new",
-      audit_answers: { industry, revenue, challenge },
+      // γ2 — persist the normalized challenge (trimmed; null when whitespace-
+      // only). industry/revenue remain unchanged — their enum/band shape is
+      // validated elsewhere via scoring policy, not here.
+      audit_answers: { industry, revenue, challenge: challengeNormalized },
       audit_report: {},
       metadata: {},
       created_at: createdAt,

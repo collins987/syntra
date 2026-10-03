@@ -67,6 +67,18 @@ const TIERS = {
   invites: tier(10, "1 h", "invites"),
   // Called by n8n (steady, automated traffic) and the manual sync button.
   workflow: tier(300, "1 m", "workflow"),
+  // Phase 1f-γ2 — AI Lead Intelligence per-user frequency protection on the
+  // manual Analyze path. Applied automatically by middleware via a RULES
+  // match below; identity is the admin's user id (or the caller's IP for
+  // the pre-auth window before the 401 fires).
+  aiLeadUser: tier(20, "5 m", "ai-lead-user"),
+  // Phase 1f-γ2 — AI Lead Intelligence per-organization daily cap. NOT
+  // applied by middleware (which can't see orgId without a DB round-trip);
+  // instead the route handler calls checkRateLimitForTier() with
+  // identity "org:${orgId}" after getUserOrg() resolves. Two tiers =
+  // two Redis buckets = one Redis INCR per request per tier, never
+  // double-counting the same bucket. See api/leads/[id]/analyze/route.ts.
+  aiLeadOrg: tier(100, "24 h", "ai-lead-org"),
   // Every other authenticated /api/* route not listed above.
   default: tier(60, "1 m", "default"),
 } as const
@@ -76,12 +88,34 @@ type TierName = keyof typeof TIERS
 interface Rule {
   test: (path: string) => boolean
   tier: TierName
+  /** Phase 1f-γ2 — stable bucket key for dynamic routes. When present it
+   *  replaces the resolved pathname in the Redis key, so every leadId
+   *  under /api/leads/[id]/analyze shares one bucket per identity (the
+   *  whole point of the limit; otherwise one user could trivially bypass
+   *  it by analyzing a different lead each time). Static-path rules omit
+   *  this and keep using the pathname — unchanged behavior. */
+  bucket?: string
 }
+
+// Dynamic-route pattern — AI Lead's /api/leads/[id]/analyze where id is a
+// UUID. Narrowly scoped to the trailing /analyze segment so unrelated
+// future routes like /api/leads/[id] (member read) don't fall into it.
+const AI_LEAD_ANALYZE_PATH_RE = /^\/api\/leads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/analyze$/i
+const AI_LEAD_ANALYZE_BUCKET = "/api/leads/[id]/analyze"
 
 // Checked in order; first match wins.
 const RULES: Rule[] = [
   { test: (p) => p === "/api/audit", tier: "publicLead" },
   { test: (p) => p === "/api/ai/chat", tier: "aiChat" },
+  // Phase 1f-γ2 — AI Lead Intelligence user-tier limit. Must appear BEFORE
+  // the generic /api/* fall-through so the stricter tier wins. Bucket key
+  // is the matched pattern, not the resolved uuid, so every analyze
+  // across every lead counts against the one shared user bucket.
+  {
+    test: (p) => AI_LEAD_ANALYZE_PATH_RE.test(p),
+    tier: "aiLeadUser",
+    bucket: AI_LEAD_ANALYZE_BUCKET,
+  },
   {
     test: (p) =>
       p === "/api/stripe/checkout" ||
@@ -130,7 +164,11 @@ export async function checkRateLimit(
     // Keyed by route + identity, not identity alone: a tier shared by several
     // routes (like "payments") must give each route its own bucket, or a retry
     // against one silently spends the budget a different, unrelated route needs.
-    const { success, limit, remaining, reset } = await limiter.limit(`${pathname}:${identity}`)
+    // For dynamic routes with a declared `bucket` (Phase 1f-γ2, AI Lead
+    // analyze), the matched pattern replaces the resolved pathname so every
+    // leadId collapses into the one bucket the tier is meant to protect.
+    const bucketKey = rule?.bucket ?? pathname
+    const { success, limit, remaining, reset } = await limiter.limit(`${bucketKey}:${identity}`)
     return { limited: !success, limit, remaining, reset }
   } catch (err) {
     // A Redis hiccup must never take the whole API down — fail open, but loudly,
@@ -139,6 +177,36 @@ export async function checkRateLimit(
     return { limited: false }
   }
 }
+
+/** Phase 1f-γ2 — tier-explicit rate check used by routes that need a second
+ *  bucket outside the middleware's single automatic rule. In particular the
+ *  AI Lead analyze path's per-org daily cap: middleware can't see orgId
+ *  without a DB round-trip, so the route calls this helper after
+ *  getUserOrg() with identity "org:${orgId}". Same fail-open behaviour as
+ *  checkRateLimit — a Redis outage never blocks a legitimate admin click. */
+export async function checkRateLimitForTier(
+  tierName: TierName,
+  bucketKey: string,
+  identity: string
+): Promise<RateLimitResult> {
+  if (!redis) return { limited: false }
+  const limiter = TIERS[tierName]
+  if (!limiter) return { limited: false }
+  try {
+    const { success, limit, remaining, reset } = await limiter.limit(`${bucketKey}:${identity}`)
+    return { limited: !success, limit, remaining, reset }
+  } catch (err) {
+    console.error("[rate-limit] tier check failed, allowing the request:", err)
+    return { limited: false }
+  }
+}
+
+/** Public bucket-key constant for the AI Lead analyze path. Exported so the
+ *  route handler uses the exact same bucket string the middleware would,
+ *  guaranteeing one bucket per tier regardless of which call site touches
+ *  it. (Only the org-tier helper uses this today; user-tier is handled by
+ *  the automatic RULES match.) */
+export const AI_LEAD_ANALYZE_BUCKET_KEY = AI_LEAD_ANALYZE_BUCKET
 
 /**
  * The caller's real IP, or null when none can be determined.

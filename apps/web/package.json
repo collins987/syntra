@@ -17,7 +17,9 @@
     "qa:headers": "tsx qa/scripts/header-scan.ts",
     "qa:scoring": "tsx qa/scripts/lead-scoring.ts",
     "qa:ai-lead-parser": "tsx qa/scripts/lead-ai-parser.ts",
-    "qa:ai-lead-dry-run": "tsx qa/scripts/lead-ai-dry-run.ts"
+    "qa:ai-lead-dry-run": "tsx qa/scripts/lead-ai-dry-run.ts",
+    "qa:audit-cap": "tsx qa/scripts/audit-cap.ts",
+    "qa:rate-limit-config": "tsx qa/scripts/rate-limit-config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

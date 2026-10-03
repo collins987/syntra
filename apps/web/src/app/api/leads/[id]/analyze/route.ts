@@ -4,6 +4,11 @@ import { executeAction } from "@/lib/actions/gateway"
 import { createServiceClient } from "@/lib/supabase/service"
 import { redactLeadForPrompt } from "@/lib/leads/redact"
 import { hashAnalysisInput, ANALYSIS_VERSION } from "@/lib/ai/functions/input-hash"
+import {
+  checkRateLimitForTier,
+  setRateLimitHeaders,
+  AI_LEAD_ANALYZE_BUCKET_KEY,
+} from "@/lib/rate-limit"
 import type { Lead } from "@syntra/db"
 
 // Admin-only entry point for the ai.analyze_lead Action Gateway capability.
@@ -41,6 +46,32 @@ export async function POST(
       { error: "Only an organisation admin can run AI lead analysis" },
       { status: 403 }
     )
+  }
+
+  // Phase 1f-γ2 — organisation-tier rate limit (100/day). Applied AFTER
+  // auth + admin resolution so orgId comes from the authenticated session,
+  // never from caller input. The per-user tier is already applied by
+  // middleware under aiLeadUser (20/5m, user- or ip-keyed). Both buckets
+  // are distinct, so this is one Redis INCR against the org bucket and
+  // never double-counts the user bucket. Reuses the same 429 envelope +
+  // headers the middleware does for consistency with other rate-limited
+  // routes.
+  const orgRate = await checkRateLimitForTier(
+    "aiLeadOrg",
+    AI_LEAD_ANALYZE_BUCKET_KEY,
+    `org:${org.org_id}`
+  )
+  if (orgRate.limited) {
+    const retryAfterSeconds = orgRate.reset
+      ? Math.max(1, Math.ceil((orgRate.reset - Date.now()) / 1000))
+      : 60
+    const limited = NextResponse.json(
+      { error: "Too many requests. Please slow down and try again shortly." },
+      { status: 429 }
+    )
+    limited.headers.set("Retry-After", String(retryAfterSeconds))
+    setRateLimitHeaders(limited, orgRate)
+    return limited
   }
 
   const { id: leadId } = await params
