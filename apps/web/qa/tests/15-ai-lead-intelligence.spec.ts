@@ -94,19 +94,24 @@ test.describe("as adminA (ai.analyze_lead gateway capability)", () => {
     }
   })
 
-  test("LI-AI-02 — second call returns cached (via analyzeLead's own cache)", async ({ page }) => {
+  test("LI-AI-02 — second call returns gateway duplicate (Phase 1f-α deterministic key)", async ({ page }) => {
     const seeded = await seedTestLead(`qa-ai-cache-${Date.now()}@example.com`)
     try {
       const first = await page.request.post(`/api/leads/${seeded.id}/analyze`, { data: {} })
       expect(first.status()).toBe(200)
+      const firstBody = await first.json()
+      expect(firstBody.status).toBe("success")
+
+      // With Phase 1f-α's deterministic idempotency key
+      // (`${leadId}:${input_hash}:${ANALYSIS_VERSION}`), the second request
+      // computes the SAME key, collides on action_log's UNIQUE, and the
+      // gateway returns the first call's result under envelope status
+      // `duplicate` without any further provider work. This proves at
+      // most one real provider call per `(lead, input, version)`.
       const second = await page.request.post(`/api/leads/${seeded.id}/analyze`, { data: {} })
       expect(second.status()).toBe(200)
-      const body = await second.json()
-      // The gateway idempotency key is uuid-fresh per request, so this is
-      // never a gateway `duplicate` — the `cached` comes from analyzeLead's
-      // own ai_analysis_input_hash check, which is exactly what we want to
-      // prove works end-to-end.
-      expect(body.result.status).toBe("cached")
+      const secondBody = await second.json()
+      expect(secondBody.status).toBe("duplicate")
     } finally {
       await deleteTestLead(seeded.id)
     }

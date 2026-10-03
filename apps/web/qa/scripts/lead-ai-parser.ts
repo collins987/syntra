@@ -12,7 +12,13 @@ import {
   parseReasoning,
   MalformedResponseError,
 } from "../../src/lib/ai/functions/parse-reasoning"
-import { redactLeadForPrompt, formatRedactedLead, type RedactedLead } from "../../src/lib/leads/redact"
+import {
+  redactLeadForPrompt,
+  formatRedactedLead,
+  snapshotPinFields,
+  AI_PIN_SOURCES,
+  type RedactedLead,
+} from "../../src/lib/leads/redact"
 import { hashAnalysisInput, ANALYSIS_VERSION } from "../../src/lib/ai/functions/input-hash"
 import type { Lead } from "@syntra/db"
 
@@ -171,6 +177,64 @@ assert(
 )
 
 assert(ANALYSIS_VERSION === "prompt-v1+schema-v1", "hash: ANALYSIS_VERSION matches committed value")
+
+// ── pin snapshot: AI_PIN_SOURCES mirrors what redactLeadForPrompt reads ─
+const expectedPinSources = [
+  "email", "name", "company", "source", "interested_service", "created_at",
+  "audit_answers->>industry", "audit_answers->>revenue", "audit_answers->>challenge",
+]
+assert(
+  AI_PIN_SOURCES.length === expectedPinSources.length &&
+    expectedPinSources.every((v, i) => AI_PIN_SOURCES[i] === v),
+  "pin: AI_PIN_SOURCES contains exactly the 9 attributes the redactor reads",
+)
+
+const snap = snapshotPinFields(sampleLead)
+assert(snap.email === sampleLead.email, "pin: snapshots email verbatim")
+assert(snap.name === sampleLead.name, "pin: snapshots name verbatim")
+assert(snap.company === sampleLead.company, "pin: snapshots company verbatim")
+assert(snap.source === sampleLead.source, "pin: snapshots source verbatim")
+assert(snap.interested_service === sampleLead.interested_service, "pin: snapshots interested_service verbatim")
+assert(snap.created_at === sampleLead.created_at, "pin: snapshots created_at verbatim")
+assert(snap["audit_answers->>industry"] === "saas", "pin: snapshots audit_answers.industry")
+assert(snap["audit_answers->>revenue"] === "50k-250k", "pin: snapshots audit_answers.revenue")
+assert(snap["audit_answers->>challenge"] === "manual lead handoff", "pin: snapshots audit_answers.challenge")
+
+const leadWithNulls = {
+  ...sampleLead,
+  name: null,
+  company: null,
+  source: null,
+  interested_service: null,
+  audit_answers: {},
+}
+const nullSnap = snapshotPinFields(leadWithNulls)
+assert(nullSnap.name === null, "pin: name snapshot preserves null")
+assert(nullSnap.company === null, "pin: company snapshot preserves null")
+assert(nullSnap.source === null, "pin: source snapshot preserves null")
+assert(nullSnap.interested_service === null, "pin: interested_service snapshot preserves null")
+assert(nullSnap["audit_answers->>industry"] === null, "pin: audit_answers.industry snapshot preserves null when key absent")
+
+// Divergence guard: analyze-lead.ts must reference AI_PIN_SOURCES (not a
+// local copy of the field list). This catches a drift where a reviewer
+// extends redact.ts's reads without updating the pin.
+const analyzeSrcForPin = readFileSync(
+  resolve(__dirname, "../../src/lib/ai/functions/analyze-lead.ts"),
+  "utf8"
+)
+assert(
+  /\bAI_PIN_SOURCES\b/.test(analyzeSrcForPin),
+  "pin divergence: analyze-lead.ts imports AI_PIN_SOURCES as single source of truth",
+)
+// Also, the WHERE-clause builder must never pin fields outside the
+// AI_PIN_SOURCES list. Loose assertion: no .eq("audit_answers->>other_key"
+// forms appear in analyze-lead.ts beyond the three allowed sub-paths.
+const auditJsonbRefs = analyzeSrcForPin.match(/audit_answers->>\w+/g) ?? []
+const allowedJsonb = new Set(["audit_answers->>industry", "audit_answers->>revenue", "audit_answers->>challenge"])
+assert(
+  auditJsonbRefs.every((ref) => allowedJsonb.has(ref)),
+  "pin divergence: analyze-lead.ts touches no audit_answers sub-key outside the three allowed paths",
+)
 
 // ── deterministic-boundary invariant (grep assertion) ──────────────────
 // This is non-negotiable per architecture §29 criterion 3: analyze-lead.ts

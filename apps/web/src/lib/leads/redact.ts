@@ -6,6 +6,12 @@ import type { Lead } from "@syntra/db"
 // returned here, it cannot reach the AI provider — enforce by never passing
 // `lead` directly into any provider-facing code.
 //
+// Phase 1f-α adds `AI_PIN_SOURCES` and `snapshotPinFields` beside the
+// redactor so the stale-input conditional UPDATE in analyze-lead.ts pins the
+// exact same source attributes the redactor reads. The two must stay in
+// lockstep; the review-checklist comment in this file plus the
+// qa:ai-lead-parser grep assertion are the two mechanisms that keep them so.
+//
 // See AI_LEAD_INTELLIGENCE_PLAN.md §I ("Security / Multi-Tenant Architecture")
 // and §13 ("Privacy and Data Boundaries"). Changes to this projection are a
 // product/legal decision, not a code-review one.
@@ -84,4 +90,58 @@ function auditString(lead: Lead, key: "industry" | "revenue" | "challenge"): str
   const answers = lead.audit_answers as Record<string, unknown> | null | undefined
   const value = answers?.[key]
   return typeof value === "string" ? value : null
+}
+
+// ── Stale-input pin: single source of truth for analyze-lead's WHERE clause ──
+//
+// Every entry in AI_PIN_SOURCES names a raw lead attribute path that
+// redactLeadForPrompt() reads. The conditional UPDATE in analyze-lead.ts
+// pins each of these to its snapshot value. Changing the redactor's inputs
+// without updating this list is a correctness bug (either a stale analysis
+// could silently overwrite newer state, or an unrelated change could
+// spuriously invalidate a pending analysis). The grep-level assertion in
+// qa:ai-lead-parser catches divergence between the two.
+//
+// Column syntax: a plain column name ("email") maps directly to the leads
+// column; a path syntax ("audit_answers->>industry") maps to the jsonb
+// sub-key via PostgREST's standard operator. snapshotPinFields() returns
+// the current values of all nine, null-aware.
+
+export type AiPinSource =
+  | "email"
+  | "name"
+  | "company"
+  | "source"
+  | "interested_service"
+  | "created_at"
+  | "audit_answers->>industry"
+  | "audit_answers->>revenue"
+  | "audit_answers->>challenge"
+
+export const AI_PIN_SOURCES: readonly AiPinSource[] = [
+  "email",
+  "name",
+  "company",
+  "source",
+  "interested_service",
+  "created_at",
+  "audit_answers->>industry",
+  "audit_answers->>revenue",
+  "audit_answers->>challenge",
+] as const
+
+export type AiPinSnapshot = Record<AiPinSource, string | null>
+
+export function snapshotPinFields(lead: Lead): AiPinSnapshot {
+  return {
+    email: lead.email,
+    name: lead.name,
+    company: lead.company,
+    source: lead.source,
+    interested_service: lead.interested_service,
+    created_at: lead.created_at,
+    "audit_answers->>industry": auditString(lead, "industry"),
+    "audit_answers->>revenue": auditString(lead, "revenue"),
+    "audit_answers->>challenge": auditString(lead, "challenge"),
+  }
 }

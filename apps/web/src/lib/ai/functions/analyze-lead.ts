@@ -1,8 +1,15 @@
 import { readFileSync } from "fs"
 import { resolve } from "path"
+import * as Sentry from "@sentry/nextjs"
 import { createServiceClient } from "@/lib/supabase/service"
 import { completeStructured } from "@/lib/ai/gateway"
-import { redactLeadForPrompt, formatRedactedLead } from "@/lib/leads/redact"
+import {
+  redactLeadForPrompt,
+  formatRedactedLead,
+  snapshotPinFields,
+  AI_PIN_SOURCES,
+  type AiPinSnapshot,
+} from "@/lib/leads/redact"
 import { parseReasoning, MalformedResponseError } from "./parse-reasoning"
 import { hashAnalysisInput, ANALYSIS_VERSION } from "./input-hash"
 import type { Lead, AiConfidence } from "@syntra/db"
@@ -28,6 +35,7 @@ export const LEAD_ANALYSIS_MODEL_DEFAULT = "haiku-4-5" // operator-level toggle;
 export type LeadAnalysisStatus =
   | "success"
   | "cached"
+  | "stale_input"
   | "budget_exhausted"
   | "rate_limited"
   | "provider_error"
@@ -51,6 +59,12 @@ export interface LeadAnalysisRequest {
   orgId: string
   leadId: string
   force?: boolean
+  /** Hash the caller (HTTP route) computed from the lead's state at
+   *  idempotency-reservation time. If present and this function's own
+   *  fresh read hashes to a different value, the lead changed between
+   *  reservation and execution — short-circuit to stale_input before
+   *  any provider call. See Phase 1f-α review finding A. */
+  routeInputHash?: string | null
 }
 
 const EMPTY_USAGE = { inputTokens: 0, outputTokens: 0, costUsd: 0 }
@@ -69,7 +83,7 @@ function loadSystemPrompt(): string {
  *  tests only; the Action Gateway capability that exposes it to admins is
  *  Phase 1c, not implemented here. */
 export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysisResult> {
-  const { orgId, leadId, force = false } = req
+  const { orgId, leadId, force = false, routeInputHash = null } = req
   const base: Omit<LeadAnalysisResult, "status"> = {
     aiScore: null,
     reasoning: null,
@@ -105,6 +119,35 @@ export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysi
   // the prompt — only the redactor's approved projection.
   const redacted = redactLeadForPrompt(lead as Lead)
   const inputHash = hashAnalysisInput(redacted, ANALYSIS_VERSION)
+
+  // Phase 1f-α review finding A: idempotency identity must correspond to
+  // the state actually about to be analyzed. The HTTP route computes an
+  // inputHash at reservation time (T0); this function re-reads at a later
+  // time (T6). If the lead's input-shaping columns changed in that window,
+  // the gateway reserved under one hash but we would be analyzing a
+  // different state — allowing a concurrent request with the *current*
+  // hash to pass UNIQUE and call the provider in parallel. Short-circuit
+  // to stale_input BEFORE any provider call. This is strictly in addition
+  // to the S3 conditional UPDATE below, which catches lead changes that
+  // happen between this check and the UPDATE.
+  if (routeInputHash !== null && routeInputHash !== inputHash) {
+    Sentry.captureMessage("ai_lead_analysis.stale_input", {
+      level: "warning",
+      tags: {
+        ai_function: LEAD_ANALYSIS_FUNCTION_NAME,
+        ai_version: ANALYSIS_VERSION,
+        stale_at: "pre_provider_hash_mismatch",
+      },
+      extra: { orgId, leadId },
+    })
+    return { ...base, status: "stale_input" }
+  }
+
+  // Snapshot the exact nine attributes the redactor reads. The conditional
+  // UPDATE below pins these to their current values, so a change to any one
+  // of them during the provider call → UPDATE affects 0 rows → stale_input.
+  // See lib/leads/redact.ts AI_PIN_SOURCES for the single source of truth.
+  const pinSnapshot: AiPinSnapshot = snapshotPinFields(lead as Lead)
 
   // Cache check: identical input + version → short-circuit, return the
   // existing analysis without a provider call. force=true bypasses.
@@ -156,15 +199,34 @@ export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysi
     parsed = parseReasoning(completion.text)
   } catch (err) {
     if (err instanceof MalformedResponseError) {
+      // Observability: Sentry allow-list only (no model-output content,
+      // no PII). parseFailureCategory is a coarse enum derived from the
+      // error's class of complaint, kept small so dashboards aggregate.
+      Sentry.captureException(new Error("ai_lead_analysis.parse_failed"), {
+        tags: {
+          ai_function: LEAD_ANALYSIS_FUNCTION_NAME,
+          ai_version: ANALYSIS_VERSION,
+          model: completion.model,
+          parse_failure_category: categorizeParseFailure(err),
+        },
+        extra: {
+          orgId,
+          leadId,
+          responseLengthChars: completion.text.length,
+        },
+      })
       return { ...base, status: "malformed_response", error: err.message, model: completion.model }
     }
     throw err
   }
 
-  // ── Persist AI fields only ─────────────────────────────────────────
-  // Any attempt to write score/tier here is a boundary violation and must
-  // never be added. The field set is explicit (no spread) exactly to make
-  // the invariant visually obvious in review and grep-assertable in tests.
+  // ── Persist AI fields only (conditional on pinned snapshot) ──────────
+  // S3 stale-input protection: UPDATE only if every attribute the redactor
+  // read is still exactly what it was at snapshot time. 0 rows affected →
+  // the lead changed mid-flight → stale_input (provider was charged; see
+  // ai_requests.status for the honest accounting). Boundary invariant:
+  // this UPDATE lists ai_* fields only. Any attempt to add score/tier
+  // here is a boundary violation and is grep-asserted in qa:ai-lead-parser.
   const now = new Date().toISOString()
   const persisted = {
     ai_score: parsed.score,
@@ -176,17 +238,49 @@ export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysi
     ai_analysis_input_hash: inputHash,
   }
 
-  const { error: writeErr } = await db
-    .from("leads")
-    .update(persisted)
-    .eq("id", leadId)
-    .eq("org_id", orgId)
+  let q = db.from("leads").update(persisted).eq("id", leadId).eq("org_id", orgId)
+  for (const col of AI_PIN_SOURCES) {
+    const snap = pinSnapshot[col]
+    q = snap === null ? q.is(col, null) : q.eq(col, snap)
+  }
+  const { data: updated, error: writeErr } = await q.select("id").maybeSingle()
 
   if (writeErr) {
-    // The AI call already succeeded and was charged to the org. Returning
-    // provider_error here flags the write failure to the caller; the audit
-    // trail is intact in ai_requests regardless.
+    // Provider succeeded and was charged; the DB UPDATE itself failed.
+    // Sentry metadata is strictly structural — no row contents, no PII.
+    Sentry.captureException(new Error("ai_lead_analysis.write_failed"), {
+      tags: {
+        ai_function: LEAD_ANALYSIS_FUNCTION_NAME,
+        ai_version: ANALYSIS_VERSION,
+        model: completion.model,
+        pg_error_code: pgCodeOf(writeErr),
+      },
+      extra: { orgId, leadId },
+    })
     return { ...base, status: "provider_error", error: writeErr.message, model: completion.model }
+  }
+
+  if (!updated) {
+    // S3: zero rows affected means at least one of the nine pinned
+    // attributes changed between the SELECT above and this UPDATE. The
+    // analysis is honest for the input hash it ran against, but the
+    // lead's current input hash is different, so persisting it would
+    // overwrite with stale AI data.
+    Sentry.captureMessage("ai_lead_analysis.stale_input", {
+      level: "warning",
+      tags: {
+        ai_function: LEAD_ANALYSIS_FUNCTION_NAME,
+        ai_version: ANALYSIS_VERSION,
+        model: completion.model,
+      },
+      extra: { orgId, leadId },
+    })
+    return {
+      ...base,
+      status: "stale_input",
+      model: completion.model,
+      usage: completion.usage, // cost is real; carry it to the caller for honest UI
+    }
   }
 
   return {
@@ -199,4 +293,28 @@ export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysi
     analysisVersion: ANALYSIS_VERSION,
     usage: completion.usage,
   }
+}
+
+// ── Sentry helpers ──────────────────────────────────────────────────────────
+// Coarse enumeration of parser-failure classes, derived from the exception
+// message's shape rather than its content. Enum size is intentionally small
+// so Sentry's own facets group cleanly. Never includes the raw response.
+function categorizeParseFailure(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/empty response/i.test(msg)) return "empty_response"
+  if (/missing SUMMARY/i.test(msg)) return "missing_summary"
+  if (/CONFIDENCE/i.test(msg)) return "invalid_confidence"
+  if (/SCORE/i.test(msg)) return "invalid_score"
+  if (/missing or empty/i.test(msg)) return "missing_block"
+  if (/non-dash|starts with a non-dash/i.test(msg)) return "malformed_list"
+  return "other"
+}
+
+/** First two chars of Postgres SQLSTATE (the error class), e.g. "23" for
+ *  integrity-constraint violations. Safe to log; the full code is also safe
+ *  but the class is what dashboards usually facet on. */
+function pgCodeOf(err: unknown): string | null {
+  if (!err || typeof err !== "object") return null
+  const code = (err as { code?: unknown }).code
+  return typeof code === "string" ? code : null
 }

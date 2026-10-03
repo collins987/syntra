@@ -298,6 +298,12 @@ const workflowToggle: CapabilityDef<WorkflowToggleInput> = {
 interface AiAnalyzeLeadInput {
   leadId: string
   force: boolean
+  /** Hash the HTTP route computed from the lead's state at reservation
+   *  time. analyzeLead verifies its own fresh read hashes to the same
+   *  value; divergence (lead changed between route's read and
+   *  analyzeLead's read) short-circuits to stale_input before any
+   *  provider call. See Phase 1f-α review finding A. */
+  routeInputHash: string | null
 }
 
 const aiAnalyzeLead: CapabilityDef<AiAnalyzeLeadInput> = {
@@ -314,11 +320,17 @@ const aiAnalyzeLead: CapabilityDef<AiAnalyzeLeadInput> = {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadId)) {
       return { ok: false, error: "`leadId` must be a UUID" }
     }
-    return { ok: true, value: { leadId, force: o.force === true } }
+    const routeInputHash = str(o, "routeInputHash")
+    return { ok: true, value: { leadId, force: o.force === true, routeInputHash } }
   },
   summarize: (i) => `Run AI contextual analysis on lead ${i.leadId}`,
   async execute(input, ctx) {
-    const result = await analyzeLead({ orgId: ctx.orgId, leadId: input.leadId, force: input.force })
+    const result = await analyzeLead({
+      orgId: ctx.orgId,
+      leadId: input.leadId,
+      force: input.force,
+      routeInputHash: input.routeInputHash,
+    })
     // The capability surfaces the full LeadAnalysisResult so the caller can
     // distinguish success / cached / malformed_response / invalid_lead /
     // budget_exhausted / rate_limited / provider_error without reparsing a

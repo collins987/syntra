@@ -92,10 +92,16 @@ export function AiIntelligencePanel({
         return
       }
 
-      // body.result.status is the one that matters — it carries the whole
-      // LeadAnalysisStatus from analyze-lead.ts.
+      // body.status is the Action Gateway envelope; body.result.status is
+      // the orchestrator's LeadAnalysisStatus. With Phase 1f-α's
+      // deterministic idempotency key, a repeat click within the window
+      // produces envelope `duplicate` — same-shape result replayed from
+      // the first call's action_log row, no second provider call.
+      const envelope = body.status
       const result = body.result
       const inner = result?.status
+
+      const isCacheLikeReplay = envelope === "duplicate" || inner === "cached"
 
       if (inner === "success" || inner === "cached") {
         setCurrent({
@@ -108,8 +114,10 @@ export function AiIntelligencePanel({
           stale: false,
         })
         setStatus({
-          tone: inner === "cached" ? "cyan" : "success",
-          text: inner === "cached" ? "Reused last analysis (inputs unchanged)" : "Analysis complete",
+          tone: isCacheLikeReplay ? "cyan" : "success",
+          text: isCacheLikeReplay
+            ? "Reused last analysis (inputs unchanged)"
+            : "Analysis complete",
         })
         router.refresh()
         return
@@ -127,6 +135,16 @@ export function AiIntelligencePanel({
       }
       if (inner === "malformed_response") {
         setStatus({ tone: "warning", text: "AI returned an unreadable response — try again" })
+        return
+      }
+      if (inner === "stale_input") {
+        // Approved copy — Phase 1f-α §24. The admin can click Analyze again
+        // and the next run will hash the current lead state and persist
+        // cleanly (unless a race repeats, which is rare under manual use).
+        setStatus({
+          tone: "warning",
+          text: "Lead changed while AI was analyzing. Click Analyze with AI again to run on the updated information.",
+        })
         return
       }
       if (inner === "invalid_lead") {
