@@ -16,6 +16,15 @@ export interface ActionContext {
   getCredential: (provider: string) => Promise<string | null>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any
+  // Phase 1f-γ1 correlation — populated by the Action Gateway after the
+  // action_log row is reserved so capabilities can record it onto any
+  // downstream audit (ai_requests, future provider logs, etc). All fields
+  // may be null (e.g., capability executions without an idempotency key
+  // reservation path, or non-human actors).
+  actionLogId: string | null
+  actorUserId: string | null
+  triggerSource: string | null
+  eventId: string | null
 }
 
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string }
@@ -330,6 +339,15 @@ const aiAnalyzeLead: CapabilityDef<AiAnalyzeLeadInput> = {
       leadId: input.leadId,
       force: input.force,
       routeInputHash: input.routeInputHash,
+      // Phase 1f-γ1 — thread Action-Gateway-captured correlation into the
+      // AI analysis so ai_requests can record which action_log row, which
+      // admin, which trigger, which event this provider call belongs to.
+      correlation: {
+        actionLogId: ctx.actionLogId,
+        actorUserId: ctx.actorUserId,
+        triggerSource: ctx.triggerSource ?? "manual",
+        eventId: ctx.eventId ?? "manual",
+      },
     })
     // The capability surfaces the full LeadAnalysisResult so the caller can
     // distinguish success / cached / malformed_response / invalid_lead /

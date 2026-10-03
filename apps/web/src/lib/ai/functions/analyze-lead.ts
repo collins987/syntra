@@ -65,6 +65,17 @@ export interface LeadAnalysisRequest {
    *  reservation and execution — short-circuit to stale_input before
    *  any provider call. See Phase 1f-α review finding A. */
   routeInputHash?: string | null
+  /** Phase 1f-γ1 — correlation metadata passed through from the Action
+   *  Gateway via ActionContext. Written to ai_requests on provider
+   *  interactions so a single-table query can answer "who/which lead/
+   *  which trigger/which action". Null fields are acceptable; migration
+   *  014 made every target column nullable. */
+  correlation?: {
+    actionLogId: string | null
+    actorUserId: string | null
+    triggerSource: string | null
+    eventId: string | null
+  }
 }
 
 const EMPTY_USAGE = { inputTokens: 0, outputTokens: 0, costUsd: 0 }
@@ -83,7 +94,18 @@ function loadSystemPrompt(): string {
  *  tests only; the Action Gateway capability that exposes it to admins is
  *  Phase 1c, not implemented here. */
 export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysisResult> {
-  const { orgId, leadId, force = false, routeInputHash = null } = req
+  const { orgId, leadId, force = false, routeInputHash = null, correlation } = req
+  // The AI gateway's `completeStructured` writes correlation onto every
+  // ai_requests row (success, failed, dry-run alike). Build the record
+  // once; passing lead_id ensures the AI audit survives any future
+  // action_log retention sweeper.
+  const aiCorrelation = {
+    actionLogId: correlation?.actionLogId ?? null,
+    leadId,
+    actorUserId: correlation?.actorUserId ?? null,
+    triggerSource: correlation?.triggerSource ?? null,
+    eventId: correlation?.eventId ?? null,
+  }
   const base: Omit<LeadAnalysisResult, "status"> = {
     aiScore: null,
     reasoning: null,
@@ -175,6 +197,7 @@ export async function analyzeLead(req: LeadAnalysisRequest): Promise<LeadAnalysi
     system,
     user,
     maxOutputTokens: 600,
+    correlation: aiCorrelation,
   })
 
   if (completion.status === "budget_exhausted") {

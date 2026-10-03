@@ -16,6 +16,12 @@ export interface ExecuteParams {
   actorRef?: string | null
   /** Same key + same org = execute once. Required for workflow-initiated calls. */
   idempotencyKey?: string | null
+  /** Phase 1f-γ1 — the trigger source and stable event identity that caused
+   *  this dispatch. Threaded through to the capability's ActionContext so
+   *  downstream audit tables (ai_requests) can record them. Both default
+   *  to null; the AI-lead HTTP route populates them as "manual"/"manual". */
+  triggerSource?: string | null
+  eventId?: string | null
 }
 
 export interface ExecuteResult {
@@ -59,7 +65,20 @@ export async function authenticateWorkflowToken(
   return { orgId: data.org_id, tokenId: data.id, capabilities: data.capabilities ?? [] }
 }
 
-async function buildContext(orgId: string): Promise<ActionContext> {
+async function buildContext(
+  orgId: string,
+  correlation: {
+    actionLogId: string | null
+    actorUserId: string | null
+    triggerSource: string | null
+    eventId: string | null
+  } = {
+    actionLogId: null,
+    actorUserId: null,
+    triggerSource: null,
+    eventId: null,
+  }
+): Promise<ActionContext> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
 
@@ -73,6 +92,10 @@ async function buildContext(orgId: string): Promise<ActionContext> {
     orgId,
     orgName: org?.name ?? "your organisation",
     db,
+    actionLogId: correlation.actionLogId,
+    actorUserId: correlation.actorUserId,
+    triggerSource: correlation.triggerSource,
+    eventId: correlation.eventId,
     async getCredential(provider: string) {
       const { data } = await db
         .from("org_credentials")
@@ -128,7 +151,16 @@ function sanitize(input: unknown): Record<string, unknown> {
 }
 
 export async function executeAction(params: ExecuteParams): Promise<ExecuteResult> {
-  const { orgId, capability, input, actor, actorRef = null, idempotencyKey = null } = params
+  const {
+    orgId,
+    capability,
+    input,
+    actor,
+    actorRef = null,
+    idempotencyKey = null,
+    triggerSource = null,
+    eventId = null,
+  } = params
 
   const def = getCapability(capability)
   if (!def) {
@@ -184,7 +216,15 @@ export async function executeAction(params: ExecuteParams): Promise<ExecuteResul
     actionId = data.id
   }
 
-  const ctx = await buildContext(orgId)
+  // Phase 1f-γ1 — correlation is populated after the action_log row is
+  // reserved (above). actor_user_id derives from actor_ref when the actor
+  // is a human; non-human actors leave it null.
+  const ctx = await buildContext(orgId, {
+    actionLogId: actionId,
+    actorUserId: actor === "human" ? actorRef : null,
+    triggerSource,
+    eventId,
+  })
 
   if (def.requiredCredential) {
     const cred = await ctx.getCredential(def.requiredCredential)

@@ -215,6 +215,13 @@ export interface AIRequest {
   error: string | null
   request_id: string
   created_at: string
+  // Phase 1f-γ1 correlation columns (migration 014). All nullable; existing
+  // pre-γ1 rows remain valid with each set to null.
+  action_log_id: string | null
+  lead_id: string | null
+  actor_user_id: string | null
+  trigger_source: string | null
+  event_id: string | null
 }
 
 export interface AIUsageBudget {

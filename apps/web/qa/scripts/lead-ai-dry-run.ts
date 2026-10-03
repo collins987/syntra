@@ -363,6 +363,136 @@ async function main() {
     } finally {
       await db.from("leads").delete().eq("id", leadId8).eq("org_id", QA_ORG_A)
     }
+    // ── 8b. γ1 CORRELATION — ai_requests records migration-014 columns.
+    // Call analyzeLead directly with a correlation bundle (same shape the
+    // registry's capability constructs) and verify the resulting ai_requests
+    // row carries action_log_id, lead_id, actor_user_id, trigger_source,
+    // event_id. Direct call bypasses the HTTP route + Action Gateway (both
+    // are already covered by the Playwright suite); this script's job is
+    // the lower-level correlation plumbing.
+    const email8b = `qa-ai-corr-${Date.now()}@example.com`
+    const { data: created8b } = await db
+      .from("leads")
+      .insert({
+        org_id: QA_ORG_A, email: email8b, name: "QA Correlation",
+        company: "Corr Co", source: "audit", interested_service: "os",
+        score: 30, tier: "D", status: "new",
+        audit_answers: { industry: "saas" }, audit_report: {}, metadata: {},
+      })
+      .select("id").single()
+    const leadId8b = (created8b as { id: string }).id
+    const FAKE_ACTION_LOG = "11111111-1111-1111-1111-111111111111"
+    const FAKE_ACTOR = "22222222-2222-2222-2222-222222222222"
+    try {
+      // Attempt an analysis with a bogus (non-existent) action_log_id.
+      // The ai_requests INSERT's FK constraint must reject the row —
+      // which means analyzeLead's INSERT in recordStructuredRequest
+      // throws, which propagates and the status is NOT success.
+      // We expect this to fail by FK; the correct assertion is "no
+      // ai_requests row was persisted and the attempt was caught".
+      let threw = false
+      try {
+        await analyzeLead({
+          orgId: QA_ORG_A, leadId: leadId8b, force: true,
+          correlation: {
+            actionLogId: FAKE_ACTION_LOG,
+            actorUserId: FAKE_ACTOR,
+            triggerSource: "manual",
+            eventId: "manual",
+          },
+        })
+      } catch {
+        threw = true
+      }
+
+      const { data: row } = await db
+        .from("ai_requests")
+        .select("id")
+        .eq("org_id", QA_ORG_A)
+        .eq("function_name", "lead.analyze")
+        .eq("lead_id", leadId8b)
+        .maybeSingle()
+      // Either the FK rejection propagated (threw=true) OR no row persisted
+      // (row===null). Both outcomes prove the FK is enforced.
+      assert(
+        threw || row === null,
+        "corr: bogus action_log_id blocked by FK (no ai_requests row persisted)",
+      )
+    } finally {
+      await db.from("leads").delete().eq("id", leadId8b).eq("org_id", QA_ORG_A)
+    }
+
+    // ── 8c. γ1 CORRELATION with a REAL action_log row ─────────────────
+    const email8c = `qa-ai-corr2-${Date.now()}@example.com`
+    const { data: created8c } = await db
+      .from("leads")
+      .insert({
+        org_id: QA_ORG_A, email: email8c, name: "QA Correlation Real",
+        company: "Corr Real Co", source: "audit", interested_service: "os",
+        score: 30, tier: "D", status: "new",
+        audit_answers: { industry: "saas" }, audit_report: {}, metadata: {},
+      })
+      .select("id").single()
+    const leadId8c = (created8c as { id: string }).id
+    let realActionId: string | null = null
+    try {
+      // Plant a real action_log row (as the Action Gateway would).
+      const { data: plantedAl } = await db
+        .from("action_log")
+        .insert({
+          org_id: QA_ORG_A, actor: "human", actor_ref: FAKE_ACTOR,
+          capability: "ai.analyze_lead", request: { leadId: leadId8c },
+          result: {}, status: "pending",
+          idempotency_key: `qa-corr-test-${Date.now()}`,
+        })
+        .select("id").single()
+      realActionId = (plantedAl as { id: string }).id
+
+      const r8c = await analyzeLead({
+        orgId: QA_ORG_A, leadId: leadId8c, force: true,
+        correlation: {
+          actionLogId: realActionId,
+          actorUserId: FAKE_ACTOR,
+          triggerSource: "manual",
+          eventId: "manual",
+        },
+      })
+      assert(r8c.status === "success", `corr-real: dry-run succeeds (got ${r8c.status})`)
+
+      const { data: row } = await db
+        .from("ai_requests")
+        .select("action_log_id, lead_id, actor_user_id, trigger_source, event_id")
+        .eq("org_id", QA_ORG_A)
+        .eq("function_name", "lead.analyze")
+        .eq("lead_id", leadId8c)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      assert(row?.action_log_id === realActionId, `corr-real: action_log_id = ${realActionId}`)
+      assert(row?.lead_id === leadId8c, `corr-real: lead_id = ${leadId8c}`)
+      assert(row?.actor_user_id === FAKE_ACTOR, `corr-real: actor_user_id = ${FAKE_ACTOR}`)
+      assert(row?.trigger_source === "manual", "corr-real: trigger_source = manual")
+      assert(row?.event_id === "manual", "corr-real: event_id = manual")
+
+      // ON DELETE SET NULL on action_log_id — delete the planted action
+      // and verify the ai_requests row survives with action_log_id null.
+      await db.from("action_log").delete().eq("id", realActionId)
+      const { data: afterDel } = await db
+        .from("ai_requests")
+        .select("action_log_id, lead_id")
+        .eq("org_id", QA_ORG_A)
+        .eq("function_name", "lead.analyze")
+        .eq("lead_id", leadId8c)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      assert(afterDel?.action_log_id === null, "corr-real: ON DELETE SET NULL — action_log_id nulled")
+      assert(afterDel?.lead_id === leadId8c, "corr-real: lead_id survives action_log deletion (denormalized)")
+    } finally {
+      // Cleanup — the action_log row was deleted above; just delete the lead.
+      await db.from("leads").delete().eq("id", leadId8c).eq("org_id", QA_ORG_A)
+    }
+
     // ── 9. Pre-flight / snapshot hash divergence (Phase 1f-α finding A) ─
     // When analyzeLead is called with a routeInputHash that differs from
     // the hash it computes on its own fresh read, it must short-circuit

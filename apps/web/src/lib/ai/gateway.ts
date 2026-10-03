@@ -185,6 +185,18 @@ async function recordRequest(params: {
   })
 }
 
+/** Phase 1f-γ1 correlation record threaded onto every structured-completion
+ *  provider interaction. All fields nullable so the gateway stays generic
+ *  across features: a future non-lead structured completion that doesn't
+ *  have a lead or an actor can pass null. */
+export interface StructuredCorrelation {
+  actionLogId: string | null
+  leadId: string | null
+  actorUserId: string | null
+  triggerSource: string | null
+  eventId: string | null
+}
+
 /** Logs a structured completion to ai_requests under a per-feature
  *  function_name/version so Lead Intelligence calls (and any future
  *  structured-completion feature) can be audited distinctly from the
@@ -200,9 +212,11 @@ async function recordStructuredRequest(params: {
   durationMs: number
   status: string
   error?: string | null
+  correlation?: StructuredCorrelation | null
 }): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createServiceClient() as any
+  const correlation = params.correlation ?? null
   await db.from("ai_requests").insert({
     org_id: params.orgId,
     function_name: params.functionName,
@@ -214,6 +228,13 @@ async function recordStructuredRequest(params: {
     duration_ms: params.durationMs,
     status: params.status,
     error: params.error ?? null,
+    // Phase 1f-γ1 — migration 014 columns. Null for callers (chat path)
+    // that don't thread correlation; populated for lead.analyze.
+    action_log_id: correlation?.actionLogId ?? null,
+    lead_id: correlation?.leadId ?? null,
+    actor_user_id: correlation?.actorUserId ?? null,
+    trigger_source: correlation?.triggerSource ?? null,
+    event_id: correlation?.eventId ?? null,
   })
 }
 
@@ -564,8 +585,12 @@ export async function completeStructured(params: {
   system: string
   user: string
   maxOutputTokens?: number
+  /** Phase 1f-γ1 — propagated onto every ai_requests row written by this
+   *  call (success, failure, dry-run). Null fields are fine; migration 014
+   *  made every target column nullable. */
+  correlation?: StructuredCorrelation | null
 }): Promise<StructuredResult> {
-  const { orgId, functionName, functionVersion, system, user } = params
+  const { orgId, functionName, functionVersion, system, user, correlation = null } = params
   const maxOutputTokens = params.maxOutputTokens ?? MAX_OUTPUT_TOKENS
   const empty = { inputTokens: 0, outputTokens: 0, costUsd: 0 }
   const model = getModel()
@@ -597,6 +622,7 @@ export async function completeStructured(params: {
       durationMs: 0,
       status: "dry_run",
       error: null,
+      correlation,
     })
     return { status: "success", text: dryText, model: "dry-run", usage: empty }
   }
@@ -630,6 +656,7 @@ export async function completeStructured(params: {
       durationMs,
       status: "success",
       error: null,
+      correlation,
     })
 
     return {
@@ -661,6 +688,7 @@ export async function completeStructured(params: {
       durationMs,
       status: classified,
       error: message,
+      correlation,
     })
 
     return {

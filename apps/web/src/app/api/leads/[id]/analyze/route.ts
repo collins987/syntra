@@ -79,6 +79,12 @@ export async function POST(
     actor: "human",
     actorRef: org.userId,
     idempotencyKey,
+    // Phase 1f-γ1 — manual admin trigger. The event id is "manual" (not
+    // "manual:userId") so two admins analyzing the same lead state
+    // converge on the same operation identity. Actor identity lives in
+    // ai_requests.actor_user_id for audit, never in the key.
+    triggerSource: "manual",
+    eventId: "manual",
   })
 
   return NextResponse.json(
