@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { loadAccounts } from "../fixtures/accounts"
 import { ensureFreshAuthState } from "../fixtures/auth-state"
+import { loginAs } from "../fixtures/login"
 
 // Lead Intelligence v2 — audit-form service capture, assignment, and
 // cross-organization isolation. Requires migration 012 to be applied
@@ -25,12 +26,17 @@ test.describe("as adminA", () => {
 
   // A-D: each interested_service value scores exactly its approved rule
   // weight through the real crm.upsert path (same engine the audit form
-  // now uses — exercised here via the gateway since it's cookie-free and
-  // deterministic, same assertion either way).
+  // now uses). A freshly-created lead also matches the recency 0-7d rule
+  // (+5), so the live score is service-interest-points + 5 — tested here
+  // as the actual live total, not the service-interest component alone,
+  // because that's what crm.upsert really writes to the DB and renders.
   const SERVICE_POINTS: Record<string, number> = { sites: 18, flow: 18, growth: 18, os: 25 }
+  const RECENCY_FRESH = 5
 
   for (const service of ["sites", "flow", "growth", "os"] as const) {
-    test(`LI-V2-${service.toUpperCase()} — crm.upsert with interested_service=${service} scores +${SERVICE_POINTS[service]}`, async ({
+    const servicePts = SERVICE_POINTS[service]!
+    const liveScore = servicePts + RECENCY_FRESH
+    test(`LI-V2-${service.toUpperCase()} — crm.upsert with interested_service=${service} scores ${liveScore} (service +${servicePts}, recency +${RECENCY_FRESH})`, async ({
       page,
     }) => {
       const { token, tokenRecord } = await mintToken(page, ["crm.upsert"])
@@ -48,9 +54,9 @@ test.describe("as adminA", () => {
       // would false-match another row that happens to share the same score.
       const row = page.locator("div.grid", { hasText: email }).first()
       await expect(row).toBeVisible()
-      // The score badge renders "{score}{tier}" — a service-only lead with
-      // no other signals lands below 40, so this is always Tier D.
-      await expect(row.getByText(`${SERVICE_POINTS[service]}D`, { exact: true })).toBeVisible()
+      // The score badge renders "{score}{tier}" — service + recency keeps
+      // every service-only-plus-recency lead below 40, so always Tier D.
+      await expect(row.getByText(`${liveScore}D`, { exact: true })).toBeVisible()
 
       await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`)
     })
@@ -69,7 +75,9 @@ test.describe("as adminA", () => {
     await page.goto("/portal/leads")
     const row = page.locator("div.grid", { hasText: email }).first()
     await expect(row).toBeVisible()
-    await expect(row.getByText("0D", { exact: true })).toBeVisible()
+    // No service interest → only the recency 0-7d rule matches on a fresh
+    // lead → 5 points, Tier D. See LI-V2-{service} tests for the breakdown.
+    await expect(row.getByText("5D", { exact: true })).toBeVisible()
 
     await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`)
   })
@@ -80,7 +88,14 @@ test.describe("as adminA", () => {
       headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": `qa-li-bad-${Date.now()}` },
       data: { email: "qa-li-bad@example.com", interested_service: "not-a-real-service" },
     })
-    expect(res.status()).toBe(400)
+    // The gateway's status taxonomy routes capability-validation failures to
+    // `blocked` (HTTP 403), not `failed` (502) or the raw 400 that a bare
+    // Next route would use — see api/actions/[capability]/route.ts's
+    // STATUS_CODES map. 403 is the production rejection code for an input
+    // that didn't pass validate().
+    expect(res.status()).toBe(403)
+    const body = await res.json()
+    expect(body.status).toBe("blocked")
     await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`)
   })
 
@@ -98,11 +113,15 @@ test.describe("as adminA", () => {
     await expect(row.getByText("OS", { exact: true }).first()).toBeVisible()
 
     // Score reasons are surfaced as the badge's title attribute (accessible
-    // on hover/inspection), not hidden entirely.
-    const badge = row.getByText("25D", { exact: true })
+    // on hover/inspection), not hidden entirely. 30 = 25 (OS interest) + 5
+    // (recency 0-7d) on a freshly-created lead. The OS-interest rule's
+    // approved explanation text lives in lib/leads/scoring.ts and must
+    // appear in the tooltip reasons list.
+    const badge = row.getByText("30D", { exact: true })
     await expect(badge).toBeVisible()
     const title = await badge.locator("xpath=..").getAttribute("title")
-    expect(title).toContain("Interested in Syntra OS")
+    expect(title).toContain("Interested in the complete SYNTRA platform (OS)")
+    expect(title).toContain("Recently submitted")
 
     await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`)
   })
@@ -114,8 +133,10 @@ test.describe("as adminA", () => {
       headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": `qa-li-assign-${Date.now()}` },
       data: { email, name: "QA Assignment Test" },
     })
-    const { data } = await upsertRes.json()
-    const leadId = data.leadId
+    // The gateway envelopes the capability's return value under `result`
+    // (see api/actions/[capability]/route.ts), not `data`.
+    const { result } = (await upsertRes.json()) as { result: { leadId: string } }
+    const leadId = result.leadId
     await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`)
 
     const { adminA } = loadAccounts()
@@ -147,7 +168,7 @@ test.describe("as adminA", () => {
       headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": `qa-li-campaign-${Date.now()}` },
       data: { email, name: "QA Campaign Lead" },
     })
-    const { data } = await upsertRes.json()
+    const { result } = (await upsertRes.json()) as { result: { leadId: string } }
     await page.request.delete(`/api/integrations/token?id=${tokenRecord.id}`)
 
     // crm.upsert doesn't accept a campaign reference (out of scope) — this
@@ -158,19 +179,24 @@ test.describe("as adminA", () => {
     const list = await page.request.get("/api/campaigns")
     const { campaigns } = await list.json()
     expect(campaigns.some((c: { id: string }) => c.id === campaign.id)).toBe(true)
-    void data
+    void result
   })
 })
 
 test.describe("cross-organization isolation", () => {
-  const AUTH_PATH_B = "qa/fixtures/.auth/adminB.json"
-  test.beforeAll(async () => {
-    const { adminB, password } = loadAccounts()
-    await ensureFreshAuthState(adminB.email, password, AUTH_PATH_B)
-  })
-  test.use({ storageState: AUTH_PATH_B })
-
+  // adminB is the only user whose session is never bootstrapped by an earlier
+  // spec in the suite (adminA and userA get warmed by 02-auth etc.), so the
+  // describe-level `test.use({ storageState })` + `beforeAll(ensureFresh…)`
+  // pattern used elsewhere races: Playwright reads the storageState file to
+  // create the context before `beforeAll` has written it, and the first H
+  // test here then lands on /login with no session. Doing a real sign-in
+  // inside the test, via the same `loginAs` helper the rest of the suite
+  // uses, bypasses that race without weakening auth — it exercises the
+  // actual password + cookie path end-to-end, not a shortcut.
   test("LI-V2-H — org B cannot see org A's leads, campaigns, or assign cross-org", async ({ page }) => {
+    const { adminB, password } = loadAccounts()
+    await loginAs(page, adminB.email, password)
+
     await page.goto("/portal/leads")
     // org B has its own empty lead list — never a leak of org A's rows.
     await expect(page.getByText("No leads yet")).toBeVisible()
