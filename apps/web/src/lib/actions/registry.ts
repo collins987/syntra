@@ -357,12 +357,143 @@ const aiAnalyzeLead: CapabilityDef<AiAnalyzeLeadInput> = {
   },
 }
 
+// ── sheet.append ─────────────────────────────────────────────────────────────
+//
+// Appends one row to a Google Sheet using the org's connected Google Sheets
+// credential (a service-account JSON key stored in org_credentials under the
+// "google_sheets" provider). The integration UI lets the client paste that key
+// via /portal/integrations.
+//
+// This is the third of the three Stage 2 adapters (email.send, crm.upsert,
+// sheet.append). Google Sheets is the most common lightweight CRM/log/report
+// target for SME automations — a lead arrives, a row appears in the sheet.
+
+interface SheetAppendInput {
+  spreadsheet_id: string
+  sheet_name: string
+  values: string[]
+}
+
+const sheetAppend: CapabilityDef<SheetAppendInput> = {
+  name: "sheet.append",
+  description: "Append a row of values to a Google Sheet.",
+  irreversible: false,
+  requiredCredential: "google_sheets",
+  validate(input) {
+    const o = asObject(input)
+    if (!o) return { ok: false, error: "Expected an object" }
+    const spreadsheet_id = str(o, "spreadsheet_id")
+    if (!spreadsheet_id) return { ok: false, error: "`spreadsheet_id` is required" }
+    const sheet_name = str(o, "sheet_name") ?? "Sheet1"
+    const rawValues = o["values"]
+    if (!Array.isArray(rawValues) || rawValues.length === 0) {
+      return { ok: false, error: "`values` must be a non-empty array of strings" }
+    }
+    if (rawValues.length > 50) return { ok: false, error: "`values` may contain at most 50 cells" }
+    const values = rawValues.map((v) => String(v ?? ""))
+    return { ok: true, value: { spreadsheet_id, sheet_name, values } }
+  },
+  summarize: (i) =>
+    `Append a row to "${i.sheet_name}" in spreadsheet ${i.spreadsheet_id.slice(0, 12)}…`,
+  async execute(input, ctx) {
+    const credJson = await ctx.getCredential("google_sheets")
+    if (!credJson) throw new Error("Google Sheets is not connected for this organisation")
+
+    let credentials: Record<string, unknown>
+    try {
+      credentials = JSON.parse(credJson) as Record<string, unknown>
+    } catch {
+      throw new Error("Stored Google Sheets credential is not valid JSON")
+    }
+
+    // Obtain a short-lived access token from Google's token endpoint using the
+    // service-account key. We sign a JWT manually to avoid bundling googleapis,
+    // which is very large. Only the spreadsheets.values.append scope is needed.
+    const clientEmail = credentials["client_email"] as string | undefined
+    const privateKey = (credentials["private_key"] as string | undefined)?.replace(/\\n/g, "\n")
+
+    if (!clientEmail || !privateKey) {
+      throw new Error("Google Sheets credential is missing client_email or private_key")
+    }
+
+    const scope = "https://www.googleapis.com/auth/spreadsheets"
+    const now = Math.floor(Date.now() / 1000)
+    const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }))
+    const claim = btoa(
+      JSON.stringify({
+        iss: clientEmail,
+        scope,
+        aud: "https://oauth2.googleapis.com/token",
+        exp: now + 3600,
+        iat: now,
+      })
+    )
+    const payload = `${header}.${claim}`
+
+    // Import the RSA private key and sign with RS256.
+    const pemBody = privateKey
+      .replace(/-----BEGIN PRIVATE KEY-----/, "")
+      .replace(/-----END PRIVATE KEY-----/, "")
+      .replace(/\s/g, "")
+    const keyBuffer = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0))
+    const cryptoKey = await crypto.subtle.importKey(
+      "pkcs8",
+      keyBuffer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"]
+    )
+    const sigBuffer = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      cryptoKey,
+      new TextEncoder().encode(payload)
+    )
+    const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)))
+    const jwt = `${payload}.${sig}`
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!tokenRes.ok) throw new Error(`Google token exchange failed (${tokenRes.status})`)
+    const tokenData = (await tokenRes.json()) as { access_token?: string }
+    const accessToken = tokenData.access_token
+    if (!accessToken) throw new Error("Google token response contained no access_token")
+
+    // Append the row using the Sheets API v4 valueInputOption=USER_ENTERED so
+    // numbers and dates are parsed correctly rather than stored as plain text.
+    const range = encodeURIComponent(`${input.sheet_name}!A1`)
+    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${input.spreadsheet_id}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`
+    const appendRes = await fetch(appendUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ values: [input.values] }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!appendRes.ok) {
+      const detail = await appendRes.text().catch(() => "")
+      throw new Error(`Sheets append failed (${appendRes.status}): ${detail.slice(0, 200)}`)
+    }
+    const appendData = (await appendRes.json()) as { updates?: { updatedRange?: string } }
+    return { appended: true, updatedRange: appendData.updates?.updatedRange ?? null }
+  },
+}
+
 // ── Registry ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CAPABILITIES: Record<string, CapabilityDef<any>> = {
   [emailSend.name]: emailSend,
   [crmUpsert.name]: crmUpsert,
+  [sheetAppend.name]: sheetAppend,
   [notifySlack.name]: notifySlack,
   [workflowToggle.name]: workflowToggle,
   [aiAnalyzeLead.name]: aiAnalyzeLead,
