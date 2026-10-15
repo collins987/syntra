@@ -2,6 +2,7 @@
 export { AppShell } from "./layout/app-shell"
 export { Sidebar } from "./layout/sidebar"
 export { TopBar } from "./layout/top-bar"
+export type { NavItem, NavGroup } from "./layout/navigation"
 
 // Components
 export { Button } from "./components/button"

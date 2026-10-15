@@ -4,12 +4,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Users, TrendingUp, CreditCard, ArrowLeft,
-  Activity, DollarSign, Cpu,
+  Activity, DollarSign, Cpu, UserPlus, LifeBuoy,
 } from "lucide-react"
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/clients", label: "Clients", icon: Users, exact: false },
+  { href: "/admin/onboarding", label: "Onboarding", icon: UserPlus, exact: false },
+  { href: "/admin/support", label: "Support", icon: LifeBuoy, exact: false },
   { href: "/admin/leads", label: "Leads", icon: TrendingUp, exact: false },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard, exact: false },
   { href: "/admin/economics", label: "Economics", icon: DollarSign, exact: false },

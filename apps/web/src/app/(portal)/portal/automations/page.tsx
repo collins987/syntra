@@ -7,6 +7,8 @@ import {
   type StatusTone,
 } from "@/components/portal/primitives"
 import { SyncButton } from "./_components/sync-button"
+import { getAccountContext } from "@/lib/suite/account"
+import { PhasePlaceholder } from "@/components/suite/phase-placeholder"
 
 export const metadata: Metadata = { title: "Automations" }
 
@@ -28,6 +30,24 @@ function duration(ms: number | null): string {
 }
 
 export default async function AutomationsPage() {
+  const account = await getAccountContext()
+  if (account.kind === "personal") {
+    return (
+      <PhasePlaceholder
+        icon={Zap}
+        title="Automations"
+        phase="Phase 5 — Automation Workflows"
+        description="A read-only view of every n8n workflow we run for you, with time and cost saved per workflow."
+        bullets={[
+          "Workflow name, description, status, last run time",
+          "Estimated time and money each workflow saves you",
+          "A monthly roll-up at the top so the value is impossible to miss",
+          "No triggers, no editing — you don't touch n8n, we do",
+        ]}
+      />
+    )
+  }
+
   const org = await getUserOrg()
   if (!org) return <NoOrg label="Automations" />
 

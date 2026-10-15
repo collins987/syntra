@@ -355,6 +355,26 @@ export interface ClientInvite {
   created_at: string
 }
 
+// ── Suite services (migration 017) ───────────────────────────────────────────
+
+export type ClientServiceKey =
+  | "website"
+  | "automations"
+  | "monitoring"
+  | "support"
+  | "reports"
+  | "hermes"
+  | "billing"
+
+export interface ClientService {
+  id: string
+  user_id: string
+  service: ClientServiceKey
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -387,6 +407,7 @@ export interface Database {
       email_logs: T<EmailLog, Omit<EmailLog, "id" | "created_at">>
       profiles: T<Profile, Omit<Profile, "created_at" | "updated_at">>
       client_invites: T<ClientInvite, Omit<ClientInvite, "id" | "created_at">>
+      client_services: T<ClientService, Omit<ClientService, "id" | "created_at" | "updated_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

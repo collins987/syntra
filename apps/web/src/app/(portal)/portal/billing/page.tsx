@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import type { Subscription, Invoice } from "@syntra/db"
 import Link from "next/link"
+import { CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getUserOrg } from "@/lib/org"
 import { ManageSubscriptionButton } from "./_components/manage-button"
@@ -8,6 +9,8 @@ import {
   PageShell, PageHeader, PageBody, Panel, StatusBadge, type StatusTone,
 } from "@/components/portal/primitives"
 import { DataTable, type DataTableColumn } from "@/components/portal/data-table"
+import { getAccountContext } from "@/lib/suite/account"
+import { PhasePlaceholder } from "@/components/suite/phase-placeholder"
 
 export const metadata: Metadata = { title: "Billing" }
 
@@ -91,6 +94,24 @@ const invoiceColumns: DataTableColumn<Invoice>[] = [
 ]
 
 export default async function BillingPage() {
+  const account = await getAccountContext()
+  if (account.kind === "personal") {
+    return (
+      <PhasePlaceholder
+        icon={CreditCard}
+        title="Billing"
+        phase="Phase 8 — Billing (Stripe)"
+        description="One place for your build fee, maintenance subscription, and invoice history."
+        bullets={[
+          "Current subscription status at a glance",
+          "Invoice history with per-row download",
+          "Self-service billing portal via Stripe",
+          "No build-fee payment stuck in email — paid links appear here first",
+        ]}
+      />
+    )
+  }
+
   const org = await getUserOrg()
   const supabase = await createClient()
 

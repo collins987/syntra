@@ -6,6 +6,8 @@ import { Globe, ExternalLink, Clock } from "lucide-react"
 import {
   PageShell, PageHeader, PageBody, EmptyState, StatusBadge, type StatusTone,
 } from "@/components/portal/primitives"
+import { getAccountContext } from "@/lib/suite/account"
+import { PhasePlaceholder } from "@/components/suite/phase-placeholder"
 
 export const metadata: Metadata = { title: "Websites" }
 
@@ -24,6 +26,23 @@ const STATUS_TONE: Record<string, StatusTone> = {
 }
 
 export default async function WebsitesPage() {
+  const account = await getAccountContext()
+  if (account.kind === "personal") {
+    return (
+      <PhasePlaceholder
+        icon={Globe}
+        title="Websites"
+        phase="Phase 4 — Website Management"
+        description="Status for every site we build and host for you, plus a one-click way to request changes."
+        bullets={[
+          "Live URL, last deployment date, uptime badge, current phase",
+          "Change-request form that opens a support ticket for us",
+          "No CMS or code access — we handle every change ourselves",
+        ]}
+      />
+    )
+  }
+
   const org = await getUserOrg()
   const supabase = await createClient()
 

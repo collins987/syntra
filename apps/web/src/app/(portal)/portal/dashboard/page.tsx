@@ -5,6 +5,9 @@ import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { DEFAULT_PERIOD, getDashboardData, isDashboardPeriod } from "@/lib/dashboard"
 import { isOsPlan } from "@/lib/pricing"
+import { getAccountContext } from "@/lib/suite/account"
+import { getActiveServices } from "@/lib/services/client-services"
+import { SuiteHome } from "./_components/suite-home"
 import { KpiRow } from "./_components/kpi-row"
 import { PerformanceChart } from "./_components/performance-chart"
 import { PeriodPicker } from "./_components/period-picker"
@@ -35,6 +38,15 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ days?: string }>
 }) {
+  // Personal-account clients see the Suite home — a welcome card plus a
+  // service-filtered grid of their active services. Org-based users fall
+  // through to the existing data-rich dashboard below.
+  const account = await getAccountContext()
+  if (account.kind === "personal") {
+    const activeServices = await getActiveServices(account.user.id)
+    return <SuiteHome fullName={account.profile.full_name} activeServices={activeServices} />
+  }
+
   const { days } = await searchParams
   const period = isDashboardPeriod(days) ? Number(days) as 7 | 30 | 90 : DEFAULT_PERIOD
 

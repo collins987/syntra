@@ -6,7 +6,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { LifeBuoy, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "../lib/utils"
-import { navigation } from "./navigation"
+import { navigation as defaultNavigation, type NavGroup } from "./navigation"
 
 interface SidebarProps {
   collapsed: boolean
@@ -17,10 +17,17 @@ interface SidebarProps {
    *  to two-thirds of a phone-width screen. */
   mobileOpen: boolean
   onMobileClose: () => void
+  /**
+   * Optional override of the default org-based navigation. Personal-account
+   * clients (SYNTRA Suite, Phase 2) pass a service-filtered version so each
+   * client sees only the services they have active.
+   */
+  nav?: NavGroup[] | undefined
 }
 
-export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, nav }: SidebarProps) {
   const pathname = usePathname()
+  const navigation = nav ?? defaultNavigation
 
   // The drawer closes on navigation — staying open after a tap would leave a
   // phone-width user looking at the nav instead of the page they just chose.

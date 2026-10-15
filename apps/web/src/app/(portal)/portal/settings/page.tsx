@@ -2,20 +2,29 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
-import { getUserOrg } from "@/lib/org"
+import { getAccountContext } from "@/lib/suite/account"
 import { SettingsClient } from "./_components/settings-client"
+import { ProfileSettings } from "./_components/profile-settings"
 
 export const metadata: Metadata = { title: "Settings" }
 
 export default async function SettingsPage() {
+  // Personal-account users see their profile editor; org users keep the
+  // existing team-management screen below.
+  const account = await getAccountContext()
+  if (account.kind === "personal") {
+    return <ProfileSettings profile={account.profile} />
+  }
+  if (account.kind !== "org") {
+    redirect("/login")
+  }
+  const org = { org_id: account.org_id, role: account.org_role }
+
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
-
-  const org = await getUserOrg()
-  if (!org) redirect("/onboarding")
 
   const svc = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -6,6 +6,7 @@ import { PortalBackground } from "./portal-background"
 import { CommandPalette } from "./command-palette"
 import { TopBar } from "./top-bar"
 import type { SystemHealth } from "./status-pill"
+import type { NavGroup } from "./navigation"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -24,6 +25,18 @@ interface AppShellProps {
    * nothing is worse than no bell.
    */
   notificationsSlot?: React.ReactNode
+  /**
+   * Optional sidebar override. Personal-account clients render a different
+   * (service-filtered) nav than org-based users; passing it here keeps the
+   * same shell between both audiences without a second AppShell variant.
+   */
+  nav?: NavGroup[] | undefined
+  /**
+   * Floating-action slot: rendered as the last child of the shell container
+   * so it sits above the main content. Used by the suite for the Hermes
+   * chat button; absolutely positioned by the caller.
+   */
+  floatingSlot?: React.ReactNode | undefined
 }
 
 export function AppShell({
@@ -32,6 +45,8 @@ export function AppShell({
   orgName,
   initialHealth,
   notificationsSlot,
+  nav,
+  floatingSlot,
 }: AppShellProps) {
   const [collapsed, setCollapsed] = React.useState(false)
   const [paletteOpen, setPaletteOpen] = React.useState(false)
@@ -47,6 +62,7 @@ export function AppShell({
         onToggle={() => setCollapsed((c) => !c)}
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
+        nav={nav}
       />
 
       <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -63,6 +79,8 @@ export function AppShell({
           {children}
         </main>
       </div>
+
+      {floatingSlot}
     </div>
   )
 }
