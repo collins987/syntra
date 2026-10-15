@@ -375,6 +375,25 @@ export interface ClientService {
   updated_at: string
 }
 
+// ── Suite projects (migration 018) ───────────────────────────────────────────
+// Personal-account builds, distinct from the org-based `projects` table above.
+
+export type ClientProjectType = "website" | "automation" | "both"
+export type ClientProjectStatus = "planning" | "building" | "live" | "paused"
+
+export interface ClientProject {
+  id: string
+  user_id: string
+  name: string
+  type: ClientProjectType
+  status: ClientProjectStatus
+  live_url: string | null
+  last_deployed_at: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -408,6 +427,7 @@ export interface Database {
       profiles: T<Profile, Omit<Profile, "created_at" | "updated_at">>
       client_invites: T<ClientInvite, Omit<ClientInvite, "id" | "created_at">>
       client_services: T<ClientService, Omit<ClientService, "id" | "created_at" | "updated_at">>
+      client_projects: T<ClientProject, Omit<ClientProject, "id" | "created_at" | "updated_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

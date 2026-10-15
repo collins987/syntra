@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
-import { UserPlus } from "lucide-react"
 
 import { requirePlatformAdmin } from "@/lib/auth/platform-admin"
-import { PhasePlaceholder } from "@/components/suite/phase-placeholder"
+import { OnboardingForm } from "./_components/onboarding-form"
 
 export const metadata: Metadata = { title: "Admin · Onboarding" }
 
@@ -10,17 +9,17 @@ export default async function AdminOnboardingPage() {
   await requirePlatformAdmin()
 
   return (
-    <PhasePlaceholder
-      icon={UserPlus}
-      title="Create a client"
-      phase="Phase 3 — Onboarding + Admin Panel"
-      description="A single form that creates the auth user, writes the profile, assigns services, and fires the activation email."
-      bullets={[
-        "Collect name, email, phone, company",
-        "Pick which services (Website, Automations, Monitoring, Support, Reports, Billing) are active",
-        "Send the branded invite with a 30-minute magic link",
-        "Mint a billing_customer record for the new client",
-      ]}
-    />
+    <div className="p-8">
+      <div className="mb-6 max-w-2xl">
+        <h1 className="text-xl font-semibold text-text-primary">Create a client</h1>
+        <p className="mt-1 text-sm text-text-muted">
+          Fill in their details and pick the services they&apos;ll see in the suite.
+          We&apos;ll create the account and send a one-time activation email.
+        </p>
+      </div>
+      <div className="max-w-2xl">
+        <OnboardingForm />
+      </div>
+    </div>
   )
 }
