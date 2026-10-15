@@ -87,8 +87,15 @@ export async function updateSession(request: NextRequest) {
     return response
   }
 
-  // Redirect logged-in users away from auth pages
-  if ((pathname === "/login" || pathname === "/signup") && user) {
+  // Redirect logged-in users away from auth pages. /activate/* is a personal-
+  // account invite acceptance route (Phase 1) — if a signed-in client lands on
+  // one, they'd otherwise re-sign-in as the invitee and overwrite their own
+  // session. Bounce them to the dashboard instead; an admin can resend the
+  // invite to the correct address.
+  if (
+    (pathname === "/login" || pathname === "/signup" || pathname.startsWith("/activate/")) &&
+    user
+  ) {
     const url = request.nextUrl.clone()
     url.pathname = "/portal/dashboard"
     const response = NextResponse.redirect(url)

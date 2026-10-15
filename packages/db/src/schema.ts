@@ -325,6 +325,36 @@ export interface EmailLog {
   created_at: string
 }
 
+// ── Personal-account model (migration 016) ───────────────────────────────────
+// New clients come in as individual users rather than organisations. See
+// SYNTRA_SDD.md §4.1 and §5.3. These sit alongside the org tables above —
+// which stay available for existing org-based clients — not replace them.
+
+export type ProfileStatus = "pending" | "active" | "suspended"
+
+export interface Profile {
+  id: string
+  full_name: string
+  email: string
+  phone: string | null
+  company_name: string | null
+  status: ProfileStatus
+  avatar_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ClientInvite {
+  id: string
+  email: string
+  user_id: string
+  token: string
+  expires_at: string
+  accepted_at: string | null
+  created_by: string | null
+  created_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -355,6 +385,8 @@ export interface Database {
       integrations: T<Integration, Omit<Integration, "id" | "created_at" | "updated_at">>
       team_invites: T<TeamInvite, Omit<TeamInvite, "id" | "created_at">>
       email_logs: T<EmailLog, Omit<EmailLog, "id" | "created_at">>
+      profiles: T<Profile, Omit<Profile, "created_at" | "updated_at">>
+      client_invites: T<ClientInvite, Omit<ClientInvite, "id" | "created_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }
