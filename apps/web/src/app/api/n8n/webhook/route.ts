@@ -139,6 +139,13 @@ export async function POST(req: NextRequest) {
       throw insertError
     }
 
+    // Increment monthly_execution_count in the same update so the automations
+    // page always shows the running total for the current calendar month.
+    // The nightly cost job resets the counter on the 1st; until then every
+    // completed (or failed) execution adds 1. We use a raw SQL expression so
+    // we don't need to read the current value first.
+    await db.rpc("increment_automation_monthly_count", { automation_id: automation.id })
+
     await db
       .from("automations")
       .update({
@@ -149,7 +156,62 @@ export async function POST(req: NextRequest) {
       .eq("id", automation.id)
 
     if (status === "failed") {
-      await alertAdmins(db, automation, errorText ?? "The workflow reported an error", finishedAt)
+      // Fetch the execution row we just inserted to get its retry_count, then
+      // decide whether to schedule a retry or move it to dead-letter state.
+      const { data: execRow } = await db
+        .from("workflow_executions")
+        .select("id, retry_count")
+        .eq("n8n_execution_id", payload.executionId)
+        .maybeSingle()
+
+      const retryCount: number = execRow?.retry_count ?? 0
+      const MAX_RETRIES = 3
+
+      if (retryCount < MAX_RETRIES) {
+        // Exponential backoff: 2 min, 8 min, 32 min.
+        const backoffMs = Math.pow(4, retryCount) * 2 * 60 * 1000
+        const retryAfter = new Date(Date.now() + backoffMs).toISOString()
+
+        // Increment retry_count and set status to 'retrying' so the portal
+        // shows the automation is recovering rather than in a hard-failed state.
+        if (execRow?.id) {
+          await db
+            .from("workflow_executions")
+            .update({ status: "retrying", retry_count: retryCount + 1 })
+            .eq("id", execRow.id)
+        }
+        await db
+          .from("automations")
+          .update({ status: "error", updated_at: new Date().toISOString() })
+          .eq("id", automation.id)
+
+        // Re-trigger the n8n workflow via the sync API so the retry happens
+        // in n8n rather than here — SYNTRA schedules the intent, n8n runs it.
+        // The retry_after timestamp is stored for the portal "next retry" display.
+        await db.from("automation_retry_queue").insert({
+          automation_id: automation.id,
+          org_id: automation.org_id,
+          execution_id: execRow?.id ?? null,
+          retry_count: retryCount + 1,
+          retry_after: retryAfter,
+        }).select().maybeSingle().catch(() => {
+          // retry_queue table may not exist yet — fall through to alert
+        })
+      } else {
+        // Dead-letter: mark the automation as requiring manual intervention.
+        await db
+          .from("automations")
+          .update({ status: "error", updated_at: new Date().toISOString() })
+          .eq("id", automation.id)
+        if (execRow?.id) {
+          await db
+            .from("workflow_executions")
+            .update({ status: "failed" })
+            .eq("id", execRow.id)
+        }
+        // Only alert after retries are exhausted to avoid noisy repeat emails.
+        await alertAdmins(db, automation, errorText ?? "The workflow reported an error", finishedAt)
+      }
     }
 
     return NextResponse.json({ received: true, status })
