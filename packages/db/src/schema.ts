@@ -394,6 +394,31 @@ export interface ClientProject {
   updated_at: string
 }
 
+// ── Support requests (migration 019) ─────────────────────────────────────────
+
+export type SupportPriority = "low" | "normal" | "high" | "urgent"
+export type SupportStatus = "open" | "in_progress" | "resolved" | "closed"
+
+export interface SupportRequest {
+  id: string
+  user_id: string
+  project_id: string | null
+  title: string
+  description: string
+  priority: SupportPriority
+  status: SupportStatus
+  /** Client-visible response from the admin. */
+  response_note: string | null
+  /** Admin-only context. Never serve this to the client. */
+  internal_note: string | null
+  resolved_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Shape returned to the client — strips the admin-only `internal_note`. */
+export type ClientSupportRequest = Omit<SupportRequest, "internal_note">
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -428,6 +453,7 @@ export interface Database {
       client_invites: T<ClientInvite, Omit<ClientInvite, "id" | "created_at">>
       client_services: T<ClientService, Omit<ClientService, "id" | "created_at" | "updated_at">>
       client_projects: T<ClientProject, Omit<ClientProject, "id" | "created_at" | "updated_at">>
+      support_requests: T<SupportRequest, Omit<SupportRequest, "id" | "created_at" | "updated_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }
