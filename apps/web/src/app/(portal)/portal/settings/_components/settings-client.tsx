@@ -212,6 +212,7 @@ function TeamTab({ members: init, invites: initInv, role }: { members: Member[];
   const [inviteRole, setInviteRole] = useState("CLIENT_USER")
   const [inviting, setInviting] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [changingRole, setChangingRole] = useState<string | null>(null)
   const [banner, setBanner] = useState<{ type: "success" | "error"; msg: string } | null>(null)
 
   async function invite() {
@@ -249,6 +250,23 @@ function TeamTab({ members: init, invites: initInv, role }: { members: Member[];
     }
   }
 
+  async function changeRole(id: string, newRole: string) {
+    setChangingRole(id)
+    setBanner(null)
+    const res = await fetch("/api/team/role", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId: id, role: newRole }),
+    })
+    setChangingRole(null)
+    if (res.ok) {
+      setMembers((p) => p.map((m) => m.id === id ? { ...m, role: newRole } : m))
+    } else {
+      const d = await res.json()
+      setBanner({ type: "error", msg: d.error ?? "Failed to update role." })
+    }
+  }
+
   async function cancelInvite(id: string) {
     const res = await fetch(`/api/team/invite?id=${id}`, { method: "DELETE" })
     if (res.ok) setInvites((p) => p.filter((i) => i.id !== id))
@@ -278,9 +296,27 @@ function TeamTab({ members: init, invites: initInv, role }: { members: Member[];
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="rounded-md border border-border-subtle px-2.5 py-0.5 text-[11px] text-text-secondary">
-                {ROLE_LABELS[m.role] ?? m.role}
-              </span>
+              {isAdmin && !m.isYou ? (
+                <div className="relative">
+                  {changingRole === m.id
+                    ? <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
+                    : (
+                      <select
+                        value={m.role}
+                        onChange={(e) => void changeRole(m.id, e.target.value)}
+                        className="rounded-md border border-border-subtle bg-bg-elevated px-2.5 py-0.5 text-[11px] text-text-secondary focus:border-cyan-500 focus:outline-none cursor-pointer"
+                      >
+                        <option value="CLIENT_USER">Member</option>
+                        <option value="CLIENT_ADMIN">Admin</option>
+                      </select>
+                    )
+                  }
+                </div>
+              ) : (
+                <span className="rounded-md border border-border-subtle px-2.5 py-0.5 text-[11px] text-text-secondary">
+                  {ROLE_LABELS[m.role] ?? m.role}
+                </span>
+              )}
               {isAdmin && !m.isYou && (
                 <button onClick={() => remove(m.id)} disabled={removing === m.id} className="text-text-muted hover:text-error-400 transition disabled:opacity-40" title="Remove member">
                   {removing === m.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
