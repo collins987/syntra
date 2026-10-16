@@ -105,7 +105,9 @@ export default async function PortalLayout({ children }: { children: React.React
       initialHealth={health}
       notificationsSlot={<NotificationsBell initialUnreadCount={unread.count ?? 0} />}
       nav={suiteNav}
-      floatingSlot={isPersonalAccount ? <HermesButton /> : null}
+      floatingSlot={
+        isPersonalAccount && activeServices?.has("hermes") ? <HermesButton /> : null
+      }
     >
       {degraded && (
         <SubscriptionBanner status={degraded} planName={subRow.data?.plan ?? null} />

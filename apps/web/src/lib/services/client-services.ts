@@ -13,6 +13,7 @@ export const DEFAULT_SERVICES: ClientServiceKey[] = [
   "monitoring",
   "support",
   "reports",
+  "hermes",
   "billing",
 ]
 

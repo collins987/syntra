@@ -6,9 +6,12 @@ import {
   PageShell, PageHeader, PageBody, KpiCard, Panel, EmptyState, NoOrg,
 } from "@/components/portal/primitives"
 import { getAccountContext } from "@/lib/suite/account"
-import { PhasePlaceholder } from "@/components/suite/phase-placeholder"
+import { listReports } from "@/lib/reports/data"
+import { ReportsView } from "./_components/reports-view"
 
 export const metadata: Metadata = { title: "Reports" }
+
+export const dynamic = "force-dynamic"
 
 function weekLabel(offsetWeeks: number): string {
   const end = new Date(Date.now() - offsetWeeks * 7 * 86_400_000)
@@ -21,20 +24,8 @@ function weekLabel(offsetWeeks: number): string {
 export default async function ReportsPage() {
   const account = await getAccountContext()
   if (account.kind === "personal") {
-    return (
-      <PhasePlaceholder
-        icon={FileText}
-        title="Reports"
-        phase="Phase 7 — Reports + Hermes"
-        description="Monthly summaries of what we built, what ran, and what was saved — written for you, not for us."
-        bullets={[
-          "An AI-generated executive summary of your month",
-          "Automation activity: runs, time saved, cost saved",
-          "Support requests resolved and in-flight",
-          "System uptime for the sites we host",
-        ]}
-      />
-    )
+    const reports = await listReports(account.user.id)
+    return <ReportsView reports={reports} fullName={account.profile.full_name} />
   }
 
   const org = await getUserOrg()

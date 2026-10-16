@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/workflows"
 import { DetailClient } from "./_components/detail-client"
 import { WorkflowAssignments } from "./_components/workflow-assignments"
+import { GenerateReport } from "./_components/generate-report"
 
 export const metadata: Metadata = { title: "Admin · Client detail" }
 
@@ -37,12 +38,13 @@ export default async function AdminClientDetailPage({ params }: Props) {
         invite={detail.invite}
         last_sign_in_at={detail.last_sign_in_at}
       />
-      <div className="px-8 pb-8">
+      <div className="space-y-6 px-8 pb-8">
         <WorkflowAssignments
           userId={id}
           allWorkflows={allWorkflows}
           initialAssigned={assignedIds}
         />
+        <GenerateReport userId={id} />
       </div>
     </>
   )

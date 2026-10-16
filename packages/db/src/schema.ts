@@ -464,6 +464,32 @@ export interface MonitoringCheck {
   checked_at: string
 }
 
+// ── Reports + Hermes usage (migration 022) ───────────────────────────────────
+
+export interface Report {
+  id: string
+  user_id: string
+  period_start: string
+  period_end: string
+  summary: string
+  data: Record<string, unknown>
+  model: string | null
+  input_tokens: number | null
+  output_tokens: number | null
+  cost_usd: number | null
+  generated_at: string
+}
+
+export interface HermesUsage {
+  user_id: string
+  month_start: string
+  request_count: number
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number
+  updated_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -502,6 +528,8 @@ export interface Database {
       client_workflows: T<ClientWorkflow, Omit<ClientWorkflow, "id" | "created_at" | "updated_at">>
       client_workflow_assignments: T<ClientWorkflowAssignment, Omit<ClientWorkflowAssignment, "id" | "created_at">>
       monitoring_checks: T<MonitoringCheck, Omit<MonitoringCheck, "id">>
+      reports: T<Report, Omit<Report, "id" | "generated_at">>
+      hermes_usage: T<HermesUsage, Omit<HermesUsage, "updated_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }
