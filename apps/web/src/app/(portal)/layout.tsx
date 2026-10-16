@@ -37,6 +37,10 @@ export default async function PortalLayout({ children }: { children: React.React
     .eq("id", user.id)
     .maybeSingle()) as { data: Pick<Profile, "full_name" | "company_name" | "status"> | null }
 
+  if (profile?.status === "suspended") {
+    redirect("/auth/error?reason=suspended")
+  }
+
   const org = await getUserOrg()
   const isPersonalAccount = Boolean(profile) && !org
 

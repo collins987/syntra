@@ -4,7 +4,7 @@ import Link from "next/link"
 
 export const metadata: Metadata = { title: "Sign-in error" }
 
-type ErrorReason = "expired" | "invalid" | "unauthorised"
+type ErrorReason = "expired" | "invalid" | "unauthorised" | "suspended"
 
 const COPY: Record<ErrorReason, { title: string; body: string }> = {
   expired: {
@@ -18,6 +18,10 @@ const COPY: Record<ErrorReason, { title: string; body: string }> = {
   unauthorised: {
     title: "Access denied",
     body: "You don't have permission to view that page.",
+  },
+  suspended: {
+    title: "Account suspended",
+    body: "Your account has been suspended. Please contact support if you believe this is an error.",
   },
 }
 
