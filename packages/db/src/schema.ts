@@ -419,6 +419,36 @@ export interface SupportRequest {
 /** Shape returned to the client — strips the admin-only `internal_note`. */
 export type ClientSupportRequest = Omit<SupportRequest, "internal_note">
 
+// ── Automations catalogue (migration 020) ────────────────────────────────────
+
+export type ClientWorkflowStatus = "active" | "inactive" | "error"
+
+export interface ClientWorkflow {
+  id: string
+  n8n_workflow_id: string | null
+  name: string
+  description: string | null
+  status: ClientWorkflowStatus
+  last_run_at: string | null
+  time_saved_minutes: number
+  cost_saved_usd: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ClientWorkflowAssignment {
+  id: string
+  workflow_id: string
+  user_id: string
+  created_at: string
+}
+
+/** Shape returned to the client — a workflow row joined with its assignment. */
+export interface AssignedClientWorkflow extends ClientWorkflow {
+  assignment_id: string
+  assigned_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -454,6 +484,8 @@ export interface Database {
       client_services: T<ClientService, Omit<ClientService, "id" | "created_at" | "updated_at">>
       client_projects: T<ClientProject, Omit<ClientProject, "id" | "created_at" | "updated_at">>
       support_requests: T<SupportRequest, Omit<SupportRequest, "id" | "created_at" | "updated_at">>
+      client_workflows: T<ClientWorkflow, Omit<ClientWorkflow, "id" | "created_at" | "updated_at">>
+      client_workflow_assignments: T<ClientWorkflowAssignment, Omit<ClientWorkflowAssignment, "id" | "created_at">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }
