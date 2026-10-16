@@ -449,6 +449,21 @@ export interface AssignedClientWorkflow extends ClientWorkflow {
   assigned_at: string
 }
 
+// ── Monitoring (migration 021) ───────────────────────────────────────────────
+
+export type MonitoringCheckStatus = "up" | "down" | "degraded"
+
+export interface MonitoringCheck {
+  id: string
+  project_id: string
+  url: string
+  status: MonitoringCheckStatus
+  status_code: number | null
+  response_time_ms: number | null
+  error: string | null
+  checked_at: string
+}
+
 // ── Supabase compatibility helpers ───────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type T<Row, Ins = Partial<Row>> = {
@@ -486,6 +501,7 @@ export interface Database {
       support_requests: T<SupportRequest, Omit<SupportRequest, "id" | "created_at" | "updated_at">>
       client_workflows: T<ClientWorkflow, Omit<ClientWorkflow, "id" | "created_at" | "updated_at">>
       client_workflow_assignments: T<ClientWorkflowAssignment, Omit<ClientWorkflowAssignment, "id" | "created_at">>
+      monitoring_checks: T<MonitoringCheck, Omit<MonitoringCheck, "id">>
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }
